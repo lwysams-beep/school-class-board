@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全校班級顯示板</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1a202c;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        .glow-effect {
+            box-shadow: 0 0 15px #4ade80, 0 0 30px #16a34a;
+            background-color: #22c55e;
+            color: #1f2937;
+            border-color: #22c55e;
+            transform: scale(1.05);
+            font-weight: 800;
+        }
+        .class-btn {
+            transition: all 0.2s ease;
+        }
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(26, 32, 44, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body id="main-body" class="min-h-screen flex flex-col items-center py-4 px-2 md:px-6 transition-all duration-500">
+
+    <!-- 載入指示器 -->
+    <div id="loading-overlay">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+        <p class="text-xl text-blue-300">正在連線至雲端同步系統...</p>
+    </div>
+
+    <!-- 控制列：包含標題與模式切換 -->
+    <!-- 注意：這裡加入 transition-all 以便平滑移動位置 -->
+    <header id="main-header" class="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center mb-6 gap-4 transition-all duration-500">
+        <div class="text-center md:text-left">
+            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
+                全校班級顯示板
+            </h1>
+            <p class="mt-1 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                即時同步 (每日 00:00 自動重置)
+            </p>
+        </div>
+        
+        <!-- 顯示模式切換按鈕 -->
+        <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
+            <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-4 py-2 rounded text-sm font-bold transition-colors bg-blue-600 text-white">
+                TV模式
+            </button>
+            <button onclick="changeLayout('led_wall')" id="btn-mode-led" class="px-4 py-2 rounded text-sm font-bold transition-colors text-gray-400 hover:text-white">
+                LED WALL 模式
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main id="board-container" class="w-full max-w-[98vw] mb-10 transition-all duration-500">
+        <!-- 班級按鈕將由 JS 生成 -->
+    </main>
+    
+    <!-- 引入 Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 設定與變數 ---
+        const grades = [1, 2, 3, 4, 5, 6];
+        const numToChinese = { 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六' };
+        
+        // 目前的顯示模式: 'tv_mode' (原本的標準) 或 'led_wall' (原本的TV)
+        window.currentLayout = 'tv_mode'; 
+
+        // 將變更佈局的功能掛載到 window
+        window.changeLayout = function(mode) {
+            window.currentLayout = mode;
+            
+            // 取得 DOM 元素
+            const tvBtn = document.getElementById('btn-mode-tv');
+            const ledBtn = document.getElementById('btn-mode-led');
+            const header = document.getElementById('main-header');
+            const container = document.getElementById('board-container');
+            const body = document.getElementById('main-body');
+            
+            if (mode === 'tv_mode') {
+                // === TV模式 (原本的標準列表) ===
+                tvBtn.className = "px-4 py-2 rounded text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg";
+                ledBtn.className = "px-4 py-2 rounded text-sm font-bold transition-colors text-gray-400 hover:text-white";
+                
+                // 恢復 Header 在上方
+                header.style.order = "0"; // 預設順序
+                header.classList.remove('mt-auto', 'pt-10'); // 移除置底樣式
+                header.classList.add('mb-6');
+                
+                // 容器樣式
+                container.style.order = "1";
+                body.classList.remove('justify-between'); // 移除分散對齊
+
+            } else {
+                // === LED WALL 模式 ===
+                tvBtn.className = "px-4 py-2 rounded text-sm font-bold transition-colors text-gray-400 hover:text-white";
+                ledBtn.className = "px-4 py-2 rounded text-sm font-bold transition-colors bg-teal-600 text-white shadow-lg";
+                
+                // Header 移到最下方
+                header.style.order = "2"; // 放到最後
+                header.classList.remove('mb-6');
+                header.classList.add('mt-auto', 'pt-10', 'scale-90'); // 增加上方間距，並稍微縮小
+                
+                // 容器移到最上方
+                container.style.order = "1";
+                
+                // 讓 Body 撐開高度，確保 header 真的在底部
+                body.classList.add('justify-between');
+            }
+
+            // 重新繪製畫面
+            initBoard();
+            
+            // 重新套用目前的燈號狀態
+            if (window.lastData) {
+                applyDataToUI(window.lastData);
+            }
+        };
+
+        function getClassesForGrade(grade) {
+            const baseClasses = ['A', 'B', 'C', 'D'];
+            if ([2, 4, 5, 6].includes(grade)) {
+                return ['A', 'B', 'C', 'D', 'E'];
+            }
+            return baseClasses;
+        }
+
+        function getHKDateString() {
+            return new Date().toLocaleDateString("en-CA", {timeZone: "Asia/Hong_Kong"});
+        }
+
+        // ================================================
+        //  Firebase 設定
+        // ================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAnYlgsGceAYXKLlw0P-RS9N-1ydayxhc",
+            authDomain: "claist-da546.firebaseapp.com",
+            databaseURL: "https://claist-da546-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "claist-da546",
+            storageBucket: "claist-da546.firebasestorage.app",
+            messagingSenderId: "68170044054",
+            appId: "1:68170044054:web:db2565be3216d3fc33e8b7",
+            measurementId: "G-MVH87242TX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const COLLECTION_NAME = 'class_board_data';
+        const DOC_ID = 'main_status'; 
+        const statusDocRef = doc(db, COLLECTION_NAME, DOC_ID);
+
+        const container = document.getElementById('board-container');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        let currentDbDate = null;
+        window.lastData = {};
+
+        // --- 1. 初始化畫面 ---
+        function initBoard() {
+            container.innerHTML = ''; 
+
+            if (window.currentLayout === 'tv_mode') {
+                // ================= TV模式 (原本的標準橫向列) =================
+                container.className = "w-full max-w-7xl flex flex-col gap-4 mx-auto";
+
+                grades.forEach(grade => {
+                    const currentClasses = getClassesForGrade(grade);
+                    const row = document.createElement('div');
+                    row.className = 'bg-gray-800/50 rounded-lg p-3 md:p-4 border border-gray-700/50 flex flex-col md:flex-row items-center gap-4';
+                    
+                    const titleContainer = document.createElement('div');
+                    titleContainer.className = 'flex items-center justify-center md:justify-start w-full md:w-32 shrink-0 border-b md:border-b-0 md:border-r border-gray-600 pb-2 md:pb-0 md:pr-4';
+                    
+                    const title = document.createElement('h2');
+                    title.className = 'text-xl md:text-2xl font-bold text-blue-300';
+                    title.innerText = `${numToChinese[grade]}年級`;
+                    titleContainer.appendChild(title);
+                    row.appendChild(titleContainer);
+
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = 'grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 w-full';
+
+                    currentClasses.forEach(cls => {
+                        createButton(grade, cls, btnContainer, 'tv_mode');
+                    });
+                    row.appendChild(btnContainer);
+                    container.appendChild(row);
+                });
+
+            } else {
+                // ================= LED WALL 模式 (直排、置頂、無標題) =================
+                // grid-cols-6 並排，只佔用上方空間
+                container.className = "w-full grid grid-cols-6 gap-2 md:gap-4 px-2 items-start";
+
+                grades.forEach(grade => {
+                    const currentClasses = getClassesForGrade(grade);
+                    
+                    // 每一行變成一個垂直的柱子，移除背景色以求簡潔
+                    const col = document.createElement('div');
+                    col.className = 'flex flex-col gap-2 rounded-lg h-fit';
+                    
+                    // 注意：這裡移除了 "1年" 等標題，直接顯示按鈕
+
+                    // 按鈕容器
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = 'flex flex-col gap-2 w-full';
+
+                    currentClasses.forEach(cls => {
+                        createButton(grade, cls, btnContainer, 'led_wall');
+                    });
+                    col.appendChild(btnContainer);
+                    container.appendChild(col);
+                });
+            }
+        }
+
+        // 輔助函式：建立按鈕
+        function createButton(grade, cls, parent, mode) {
+            const btn = document.createElement('button');
+            const classId = `${grade}${cls}`;
+            
+            btn.id = `btn-${classId}`;
+            
+            if (mode === 'tv_mode') {
+                // TV模式：標準按鈕
+                btn.className = `class-btn h-12 md:h-14 rounded font-bold text-lg md:text-xl border border-gray-600 text-gray-400 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900`;
+            } else {
+                // LED WALL 模式：按鈕較緊湊，字體清晰，適合遠看
+                // h-10 (約40px) 確保在畫面上方佔比不多
+                btn.className = `class-btn w-full h-10 md:h-12 rounded font-bold text-xl border border-gray-600 text-gray-400 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900`;
+            }
+            
+            btn.innerText = classId;
+            btn.onclick = () => handleBtnClick(classId);
+            parent.appendChild(btn);
+        }
+
+        // --- 2. 處理點擊邏輯 ---
+        async function handleBtnClick(classId) {
+            if (!auth.currentUser) return;
+            const btn = document.getElementById(`btn-${classId}`);
+            if (!btn) return;
+            
+            const isCurrentlyLit = btn.classList.contains('glow-effect');
+            const newState = !isCurrentlyLit;
+
+            try {
+                await setDoc(statusDocRef, { [classId]: newState }, { merge: true });
+            } catch (error) {
+                console.error("更新失敗:", error);
+                if (error.code === 'permission-denied') {
+                    alert("權限不足");
+                }
+            }
+        }
+
+        // --- 3. 自動重置邏輯 ---
+        async function performDailyReset(todayStr) {
+            console.log("執行自動重置:", todayStr);
+            const resetData = { lastResetDate: todayStr };
+            grades.forEach(g => {
+                getClassesForGrade(g).forEach(c => {
+                    resetData[`${g}${c}`] = false;
+                });
+            });
+            try { await setDoc(statusDocRef, resetData); } catch (e) { console.error(e); }
+        }
+
+        // --- 4. 監聽資料庫變更 ---
+        function setupRealtimeListener() {
+            onSnapshot(statusDocRef, (docSnapshot) => {
+                const data = docSnapshot.data() || {};
+                window.lastData = data; 
+                
+                currentDbDate = data.lastResetDate;
+                const today = getHKDateString();
+                if (currentDbDate !== today) {
+                    performDailyReset(today);
+                    return; 
+                }
+
+                applyDataToUI(data); 
+                loadingOverlay.style.display = 'none';
+            }, (error) => {
+                console.error("同步錯誤:", error);
+                loadingOverlay.innerHTML = `<p class="text-red-400">連線中斷<br><span class="text-sm">${error.message}</span></p>`;
+            });
+
+            setInterval(() => {
+                const today = getHKDateString();
+                if (currentDbDate && currentDbDate !== today) performDailyReset(today);
+            }, 60000); 
+        }
+
+        function applyDataToUI(data) {
+            grades.forEach(g => {
+                getClassesForGrade(g).forEach(c => {
+                    const classId = `${g}${c}`;
+                    const isActive = data[classId] === true;
+                    updateButtonUI(classId, isActive);
+                });
+            });
+        }
+
+        function updateButtonUI(classId, isActive) {
+            const btn = document.getElementById(`btn-${classId}`);
+            if (!btn) return;
+
+            if (isActive) {
+                btn.classList.add('glow-effect', 'border-transparent');
+                btn.classList.remove('border-gray-600', 'text-gray-400', 'bg-gray-900');
+            } else {
+                btn.classList.remove('glow-effect', 'border-transparent');
+                btn.classList.add('border-gray-600', 'text-gray-400', 'bg-gray-900');
+            }
+        }
+
+        async function startApp() {
+            window.changeLayout('tv_mode'); 
+
+            try { await signInAnonymously(auth); } 
+            catch (error) { 
+                console.error("登入失敗:", error);
+                loadingOverlay.innerHTML = `<p class="text-red-400 text-center px-4">API 設定錯誤<br><span class="text-xs">${error.code}</span></p>`;
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) setupRealtimeListener();
+            });
+        }
+
+        startApp();
+    </script>
+</body>
+</html>
