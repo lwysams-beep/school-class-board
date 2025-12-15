@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全校班級顯示板</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #000; /* 視窗背景全黑 */
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 螢幕容器：預設為 16:9，但手機模式會覆寫此設定 */
+        #screen-wrapper {
+            width: 100%;
+            max-width: 177.78vh; 
+            aspect-ratio: 16/9;
+            background-color: #1a202c;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            transition: all 0.5s ease;
+        }
+
+        /* 優化光暈效果 */
+        .glow-effect {
+            box-shadow: 0 0 20px #4ade80, 0 0 40px #16a34a; 
+            background-color: #22c55e;
+            color: #000000 !important; 
+            border-color: #22c55e;
+            transform: scale(1.02); 
+            font-weight: 900 !important;
+            z-index: 10;
+        }
+        
+        .class-btn {
+            transition: all 0.15s ease-out;
+            /* 防止手機點擊出現藍色背景 */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #loading-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(26, 32, 44, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            flex-direction: column;
+        }
+        
+        /* 自定義捲軸 (讓手機模式更好看) */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #2d3748; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4a5568; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #718096; 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 這是我們的虛擬螢幕 (TV/LED模式固定比例，手機模式全螢幕) -->
+    <div id="screen-wrapper" class="p-4 md:p-8">
+        
+        <!-- 載入指示器 -->
+        <div id="loading-overlay">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+            <p class="text-xl text-blue-300">正在連線至雲端同步系統...</p>
+        </div>
+
+        <!-- 控制列 -->
+        <header id="main-header" class="w-full flex flex-col justify-between items-center z-20 transition-all duration-500">
+            <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
+                <div class="text-center md:text-left">
+                    <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
+                        全校班級顯示板
+                    </h1>
+                    <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        即時同步 (每日 00:00 自動重置)
+                    </p>
+                </div>
+                
+                <!-- 右側控制區 -->
+                <div class="flex flex-col gap-2 items-center md:items-end w-full md:w-auto">
+                    <!-- 班級模式切換 -->
+                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center">
+                        <button onclick="changeClassMode('normal')" id="btn-class-normal" class="flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white">
+                            平日 (28)
+                        </button>
+                        <button onclick="changeClassMode('assessment')" id="btn-class-assessment" class="flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white">
+                            評估日 (33)
+                        </button>
+                    </div>
+
+                    <!-- 顯示佈局切換 (TV / LED / 手機) -->
+                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center overflow-x-auto">
+                        <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white whitespace-nowrap">
+                            TV模式
+                        </button>
+                        <button onclick="changeLayout('led_wall')" id="btn-mode-led" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                            LED WALL
+                        </button>
+                        <button onclick="changeLayout('mobile_mode')" id="btn-mode-mobile" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                            手機模式
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要內容區 -->
+        <main id="board-container" class="w-full transition-all duration-500 z-10 mt-4 custom-scrollbar">
+            <!-- 班級按鈕將由 JS 生成 -->
+        </main>
+
+    </div>
+    
+    <!-- 引入 Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const grades = [1, 2, 3, 4, 5, 6];
+        const numToChinese = { 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六' };
+        
+        window.currentLayout = 'tv_mode'; 
+        window.currentClassMode = 'normal'; 
+
+        // ----------------------------------------------------
+        // 切換班級模式
+        // ----------------------------------------------------
+        window.changeClassMode = function(mode) {
+            window.currentClassMode = mode;
+            const normalBtn = document.getElementById('btn-class-normal');
+            const assessBtn = document.getElementById('btn-class-assessment');
+
+            if (mode === 'normal') {
+                normalBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white shadow-lg";
+                assessBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white";
+            } else {
+                normalBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white";
+                assessBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white shadow-lg";
+            }
+            initBoard();
+            if (window.lastData) applyDataToUI(window.lastData);
+        };
+
+        // ----------------------------------------------------
+        // 切換顯示佈局 (TV / LED / Mobile)
+        // ----------------------------------------------------
+        window.changeLayout = function(mode) {
+            window.currentLayout = mode;
+            
+            const tvBtn = document.getElementById('btn-mode-tv');
+            const ledBtn = document.getElementById('btn-mode-led');
+            const mobileBtn = document.getElementById('btn-mode-mobile');
+            
+            const header = document.getElementById('main-header');
+            const container = document.getElementById('board-container');
+            const wrapper = document.getElementById('screen-wrapper');
+            
+            // 重置所有按鈕樣式
+            const baseBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
+            const activeBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg whitespace-nowrap";
+            
+            tvBtn.className = baseBtnClass;
+            ledBtn.className = (mode === 'led_wall') ? activeBtnClass.replace('bg-blue-600', 'bg-teal-600') : baseBtnClass; // LED模式用綠色區分
+            mobileBtn.className = baseBtnClass;
+
+            // 重置 Wrapper 樣式 (預設回歸 16:9)
+            wrapper.style.maxWidth = "177.78vh";
+            wrapper.style.aspectRatio = "16/9";
+            wrapper.style.height = "auto";
+            wrapper.style.width = "100%";
+            wrapper.classList.remove('justify-between');
+            
+            // 重置 Container 樣式
+            container.style.height = "auto";
+            container.style.maxHeight = "none";
+            container.style.overflowY = "visible";
+
+            if (mode === 'tv_mode') {
+                tvBtn.className = activeBtnClass;
+                
+                header.style.order = "0"; 
+                header.classList.remove('mt-auto'); 
+                header.classList.add('mb-2');
+                
+                container.style.order = "1";
+                // TV模式加上高度限制以顯示 scrollbar
+                container.style.maxHeight = "calc(100vh - 120px)";
+                container.style.overflowY = "auto";
+
+            } else if (mode === 'led_wall') {
+                ledBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-teal-600');
+                
+                header.style.order = "2"; 
+                header.classList.remove('mb-2');
+                header.classList.add('mt-auto'); 
+                
+                container.style.order = "1";
+                wrapper.classList.add('justify-between');
+
+            } else if (mode === 'mobile_mode') {
+                mobileBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-orange-600'); // 手機模式用橘色
+                
+                // === 手機模式關鍵設定 ===
+                // 1. 解除 16:9 限制，填滿視窗
+                wrapper.style.maxWidth = "100%";
+                wrapper.style.aspectRatio = "unset";
+                wrapper.style.height = "100vh"; // 填滿高度
+                
+                header.style.order = "0";
+                header.classList.remove('mt-auto');
+                header.classList.add('mb-4');
+                
+                container.style.order = "1";
+                // 讓內容區可垂直捲動，扣除 header 高度
+                container.style.height = "100%"; 
+                container.style.overflowY = "auto";
+            }
+
+            initBoard();
+            if (window.lastData) applyDataToUI(window.lastData);
+        };
+
+        function getClassesForGrade(grade) {
+            let classes = ['A', 'B', 'C', 'D'];
+            const mode = window.currentClassMode;
+            if ([2, 4, 5, 6].includes(grade)) classes.push('E');
+            if (mode === 'assessment') {
+                if (grade === 3) classes.push('S');
+                if (grade === 4) classes.push('S');
+                if (grade === 5) classes.push('S');
+                if (grade === 6) classes.push('S1', 'S2');
+            }
+            return classes;
+        }
+
+        function getAllPossibleClasses(grade) {
+            let classes = ['A', 'B', 'C', 'D'];
+            if ([2, 4, 5, 6].includes(grade)) classes.push('E');
+            if (grade === 3) classes.push('S');
+            if (grade === 4) classes.push('S');
+            if (grade === 5) classes.push('S');
+            if (grade === 6) classes.push('S1', 'S2');
+            return classes;
+        }
+
+        function getHKDateString() {
+            return new Date().toLocaleDateString("en-CA", {timeZone: "Asia/Hong_Kong"});
+        }
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCAnYlgsGceAYXKLlw0P-RS9N-1ydayxhc",
+            authDomain: "claist-da546.firebaseapp.com",
+            databaseURL: "https://claist-da546-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "claist-da546",
+            storageBucket: "claist-da546.firebasestorage.app",
+            messagingSenderId: "68170044054",
+            appId: "1:68170044054:web:db2565be3216d3fc33e8b7",
+            measurementId: "G-MVH87242TX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const COLLECTION_NAME = 'class_board_data';
+        const DOC_ID = 'main_status'; 
+        const statusDocRef = doc(db, COLLECTION_NAME, DOC_ID);
+
+        const container = document.getElementById('board-container');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        let currentDbDate = null;
+        window.lastData = {};
+
+        // --- 1. 初始化畫面 ---
+        function initBoard() {
+            container.innerHTML = ''; 
+
+            if (window.currentLayout === 'tv_mode') {
+                // === TV 模式 ===
+                container.className = "w-full flex flex-col gap-3 mx-auto pr-2";
+                
+                grades.forEach(grade => {
+                    const currentClasses = getClassesForGrade(grade);
+                    const row = document.createElement('div');
+                    row.className = 'bg-gray-800/50 rounded-lg p-2 md:p-3 border border-gray-700/50 flex flex-col md:flex-row items-center gap-3';
+                    
+                    const titleContainer = document.createElement('div');
+                    titleContainer.className = 'flex items-center justify-center md:justify-start w-full md:w-24 shrink-0 border-b md:border-b-0 md:border-r border-gray-600 pb-2 md:pb-0 md:pr-4';
+                    
+                    const title = document.createElement('h2');
+                    title.className = 'text-lg md:text-xl font-bold text-blue-300';
+                    title.innerText = `${numToChinese[grade]}年`;
+                    titleContainer.appendChild(title);
+                    row.appendChild(titleContainer);
+
+                    const btnContainer = document.createElement('div');
+                    const colCount = currentClasses.length > 6 ? 8 : 6;
+                    btnContainer.className = `grid grid-cols-4 md:grid-cols-${colCount} gap-2 w-full`;
+
+                    currentClasses.forEach(cls => {
+                        createButton(grade, cls, btnContainer, 'tv_mode');
+                    });
+                    row.appendChild(btnContainer);
+                    container.appendChild(row);
+                });
+
+            } else if (window.currentLayout === 'led_wall') {
+                // === LED WALL 模式 ===
+                container.className = "w-full grid grid-cols-6 gap-1 px-1 h-[25%] items-start";
+
+                grades.forEach(grade => {
+                    const currentClasses = getClassesForGrade(grade);
+                    const col = document.createElement('div');
+                    col.className = 'flex flex-col gap-0.5 h-full';
+                    
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = 'flex flex-col gap-0.5 w-full h-full';
+
+                    currentClasses.forEach(cls => {
+                        createButton(grade, cls, btnContainer, 'led_wall', currentClasses.length);
+                    });
+                    col.appendChild(btnContainer);
+                    container.appendChild(col);
+                });
+
+            } else if (window.currentLayout === 'mobile_mode') {
+                // === 手機模式 ===
+                // 1. 直向排列 2. 移除最大寬度限制 3. 增加底部邊距方便滑動
+                container.className = "w-full flex flex-col gap-4 pb-20 px-2";
+
+                grades.forEach(grade => {
+                    const currentClasses = getClassesForGrade(grade);
+                    
+                    // 卡片式設計
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-md';
+                    
+                    // 標題 (左上角)
+                    const title = document.createElement('h2');
+                    title.className = 'text-xl font-bold text-blue-300 mb-3 border-b border-gray-600 pb-2';
+                    title.innerText = `${numToChinese[grade]}年級`;
+                    card.appendChild(title);
+
+                    // 按鈕容器 (Grid 排列，按鈕大一點)
+                    const btnContainer = document.createElement('div');
+                    // 手機直向通常放 4-5 個按鈕比較剛好
+                    btnContainer.className = 'grid grid-cols-4 gap-3';
+
+                    currentClasses.forEach(cls => {
+                        createButton(grade, cls, btnContainer, 'mobile_mode');
+                    });
+                    card.appendChild(btnContainer);
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        // 輔助函式：建立按鈕
+        function createButton(grade, cls, parent, mode, classCount = 0) {
+            const btn = document.createElement('button');
+            const classId = `${grade}${cls}`;
+            
+            btn.id = `btn-${classId}`;
+            
+            if (mode === 'tv_mode') {
+                btn.className = `class-btn h-10 md:h-12 rounded-lg font-bold text-lg md:text-xl border border-gray-600 text-gray-400 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900`;
+            } else if (mode === 'led_wall') {
+                btn.className = `class-btn flex-1 w-full rounded font-black border-2 border-gray-600 text-gray-500 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 leading-none tracking-wider flex items-center justify-center`;
+                if (classCount >= 7) {
+                    btn.style.fontSize = "clamp(1rem, 2.5vh, 2rem)"; 
+                } else {
+                    btn.style.fontSize = "clamp(1.5rem, 4vh, 3rem)"; 
+                }
+            } else if (mode === 'mobile_mode') {
+                // 手機模式按鈕：高一點 (h-14)，方便手指點擊
+                btn.className = `class-btn h-14 rounded-lg font-bold text-xl border border-gray-600 text-gray-400 active:border-blue-400 active:text-blue-300 focus:outline-none select-none bg-gray-900 shadow-sm`;
+            }
+            
+            btn.innerText = classId;
+            btn.onclick = () => handleBtnClick(classId);
+            parent.appendChild(btn);
+        }
+
+        async function handleBtnClick(classId) {
+            if (!auth.currentUser) return;
+            const btn = document.getElementById(`btn-${classId}`);
+            if (!btn) return;
+            
+            const isCurrentlyLit = btn.classList.contains('glow-effect');
+            const newState = !isCurrentlyLit;
+
+            try {
+                await setDoc(statusDocRef, { [classId]: newState }, { merge: true });
+            } catch (error) {
+                console.error("更新失敗:", error);
+            }
+        }
+
+        async function performDailyReset(todayStr) {
+            console.log("執行自動重置:", todayStr);
+            const resetData = { lastResetDate: todayStr };
+            grades.forEach(g => {
+                getAllPossibleClasses(g).forEach(c => {
+                    resetData[`${g}${c}`] = false;
+                });
+            });
+            try { await setDoc(statusDocRef, resetData); } catch (e) { console.error(e); }
+        }
+
+        function setupRealtimeListener() {
+            onSnapshot(statusDocRef, (docSnapshot) => {
+                const data = docSnapshot.data() || {};
+                window.lastData = data; 
+                
+                currentDbDate = data.lastResetDate;
+                const today = getHKDateString();
+                if (currentDbDate !== today) {
+                    performDailyReset(today);
+                    return; 
+                }
+
+                applyDataToUI(data); 
+                loadingOverlay.style.display = 'none';
+            }, (error) => {
+                console.error("同步錯誤:", error);
+                loadingOverlay.innerHTML = `<p class="text-red-400">連線中斷<br><span class="text-sm">${error.message}</span></p>`;
+            });
+
+            setInterval(() => {
+                const today = getHKDateString();
+                if (currentDbDate && currentDbDate !== today) performDailyReset(today);
+            }, 60000); 
+        }
+
+        function applyDataToUI(data) {
+            const allBtns = document.querySelectorAll('button[id^="btn-"]');
+            allBtns.forEach(btn => {
+                const classId = btn.id.replace('btn-', '');
+                const isActive = data[classId] === true;
+                updateButtonUI(classId, isActive);
+            });
+        }
+
+        function updateButtonUI(classId, isActive) {
+            const btn = document.getElementById(`btn-${classId}`);
+            if (!btn) return;
+
+            if (isActive) {
+                btn.classList.add('glow-effect', 'border-transparent');
+                btn.classList.remove('border-gray-600', 'text-gray-400', 'text-gray-500', 'bg-gray-900');
+            } else {
+                btn.classList.remove('glow-effect', 'border-transparent');
+                const defaultTextColor = window.currentLayout === 'led_wall' ? 'text-gray-500' : 'text-gray-400';
+                btn.classList.add('border-gray-600', defaultTextColor, 'bg-gray-900');
+            }
+        }
+
+        async function startApp() {
+            // 預設模式
+            window.changeClassMode('normal');
+            window.changeLayout('tv_mode'); 
+
+            try { await signInAnonymously(auth); } 
+            catch (error) { 
+                console.error("登入失敗:", error);
+                loadingOverlay.innerHTML = `<p class="text-red-400 text-center px-4">API 設定錯誤<br><span class="text-xs">${error.code}</span></p>`;
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) setupRealtimeListener();
+            });
+        }
+
+        startApp();
+    </script>
+</body>
+</html>
