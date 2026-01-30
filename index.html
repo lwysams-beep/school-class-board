@@ -27,6 +27,7 @@
         /* 螢幕容器 */
         #screen-wrapper {
             width: 100%;
+            /* 預設 16:9，JS 會根據模式修改 */
             max-width: 177.78vh; 
             aspect-ratio: 16/9;
             background-color: #1a202c;
@@ -41,7 +42,6 @@
         /* =========================================
            年級專屬顏色光暈設定 (彩虹色系)
            ========================================= */
-        /* 通用光暈屬性 - 完全未改動 */
         [class*="glow-"] {
             transform: scale(1.02); 
             font-weight: 900 !important;
@@ -49,45 +49,45 @@
             border-color: transparent !important;
         }
 
-        /* 1年級：粉紅色 (只改了顏色代碼，效果參數未變) */
+        /* 1年級：粉紅色 */
         .glow-1 {
             box-shadow: 0 0 20px #ec4899, 0 0 40px #be185d; 
-            background-color: #ec4899; /* pink-500 */
+            background-color: #ec4899; 
             color: #ffffff !important; 
         }
 
         /* 2年級：橙色 */
         .glow-2 {
             box-shadow: 0 0 20px #f97316, 0 0 40px #c2410c; 
-            background-color: #f97316; /* orange-500 */
+            background-color: #f97316; 
             color: #ffffff !important; 
         }
 
         /* 3年級：黃色 */
         .glow-3 {
             box-shadow: 0 0 20px #eab308, 0 0 40px #a16207; 
-            background-color: #eab308; /* yellow-500 */
+            background-color: #eab308; 
             color: #000000 !important; 
         }
 
         /* 4年級：綠色 */
         .glow-4 {
             box-shadow: 0 0 20px #22c55e, 0 0 40px #15803d; 
-            background-color: #22c55e; /* green-500 */
+            background-color: #22c55e; 
             color: #000000 !important; 
         }
 
         /* 5年級：藍色 */
         .glow-5 {
             box-shadow: 0 0 20px #3b82f6, 0 0 40px #1d4ed8; 
-            background-color: #3b82f6; /* blue-500 */
+            background-color: #3b82f6; 
             color: #ffffff !important; 
         }
 
         /* 6年級：紫色 */
         .glow-6 {
             box-shadow: 0 0 20px #a855f7, 0 0 40px #7e22ce; 
-            background-color: #a855f7; /* purple-500 */
+            background-color: #a855f7; 
             color: #ffffff !important; 
         }
         
@@ -155,7 +155,7 @@
                     </div>
 
                     <!-- 顯示佈局切換 -->
-                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center overflow-x-auto">
+                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center overflow-x-auto max-w-[95vw]">
                         <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white whitespace-nowrap">
                             TV模式
                         </button>
@@ -164,6 +164,9 @@
                         </button>
                         <button onclick="changeLayout('mobile_mode')" id="btn-mode-mobile" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
                             手機模式
+                        </button>
+                        <button onclick="changeLayout('kiosk_mode')" id="btn-mode-kiosk" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                            Kiosk
                         </button>
                     </div>
                 </div>
@@ -209,6 +212,7 @@
             const tvBtn = document.getElementById('btn-mode-tv');
             const ledBtn = document.getElementById('btn-mode-led');
             const mobileBtn = document.getElementById('btn-mode-mobile');
+            const kioskBtn = document.getElementById('btn-mode-kiosk');
             
             const header = document.getElementById('main-header');
             const container = document.getElementById('board-container');
@@ -217,10 +221,13 @@
             const baseBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
             const activeBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg whitespace-nowrap";
             
+            // 重置按鈕狀態
             tvBtn.className = baseBtnClass;
             ledBtn.className = (mode === 'led_wall') ? activeBtnClass.replace('bg-blue-600', 'bg-teal-600') : baseBtnClass; 
-            mobileBtn.className = baseBtnClass;
+            mobileBtn.className = (mode === 'mobile_mode') ? activeBtnClass.replace('bg-blue-600', 'bg-orange-600') : baseBtnClass;
+            kioskBtn.className = (mode === 'kiosk_mode') ? activeBtnClass.replace('bg-blue-600', 'bg-indigo-600') : baseBtnClass;
 
+            // 重置 Wrapper 樣式
             wrapper.style.maxWidth = "177.78vh";
             wrapper.style.aspectRatio = "16/9";
             wrapper.style.height = "auto";
@@ -233,41 +240,51 @@
             container.style.flex = "none"; 
 
             if (mode === 'tv_mode') {
+                // ... TV Mode ...
                 tvBtn.className = activeBtnClass;
-                
                 header.style.order = "0"; 
                 header.classList.remove('mt-auto'); 
                 header.classList.add('mb-2');
-                
                 container.style.order = "1";
                 container.style.flex = "1"; 
                 container.style.height = "100%"; 
                 container.style.overflowY = "hidden";
 
             } else if (mode === 'led_wall') {
-                ledBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-teal-600');
-                
+                // ... LED Wall Mode ...
                 header.style.order = "2"; 
                 header.classList.remove('mb-2');
                 header.classList.add('mt-auto'); 
-                
                 container.style.order = "1";
                 wrapper.classList.add('justify-between');
 
             } else if (mode === 'mobile_mode') {
-                mobileBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-orange-600');
-                
+                // ... Mobile Mode ...
                 wrapper.style.maxWidth = "100%";
                 wrapper.style.aspectRatio = "unset";
                 wrapper.style.height = "100vh"; 
-                
                 header.style.order = "0";
                 header.classList.remove('mt-auto');
                 header.classList.add('mb-4');
-                
                 container.style.order = "1";
                 container.style.height = "100%"; 
                 container.style.overflowY = "auto";
+
+            } else if (mode === 'kiosk_mode') {
+                // === Kiosk Mode (直立電視) ===
+                // 修改：解除強制 9:16，自動填滿寬度
+                wrapper.style.maxWidth = "100%"; 
+                wrapper.style.aspectRatio = "unset"; 
+                wrapper.style.height = "100vh"; // 填滿高度
+                
+                header.style.order = "0";
+                header.classList.remove('mt-auto');
+                header.classList.add('mb-2');
+                
+                container.style.order = "1";
+                container.style.flex = "1"; // 自動填滿剩餘空間
+                container.style.height = "100%"; 
+                container.style.overflowY = "hidden"; // 不允許捲動，全螢幕固定
             }
 
             initBoard();
@@ -397,6 +414,32 @@
                     card.appendChild(btnContainer);
                     container.appendChild(card);
                 });
+
+            } else if (window.currentLayout === 'kiosk_mode') {
+                // === Kiosk Mode (直立電視) ===
+                // h-full 填滿高度, gap-2 增加間距
+                container.className = "w-full flex flex-col gap-2 p-2 h-full";
+
+                grades.forEach(grade => {
+                    const currentClasses = getClassesForGrade(grade);
+                    
+                    // 每一行 (代表一個年級)
+                    // flex-1: 讓6個年級平分高度
+                    const row = document.createElement('div');
+                    row.className = 'flex-1 w-full flex gap-2';
+                    
+                    // 不需要標題，直接放按鈕
+                    // 按鈕容器也是 flex，讓按鈕平分寬度
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = 'flex-1 flex gap-2 w-full h-full';
+
+                    currentClasses.forEach(cls => {
+                        createButton(grade, cls, btnContainer, 'kiosk_mode');
+                    });
+                    
+                    row.appendChild(btnContainer);
+                    container.appendChild(row);
+                });
             }
         }
 
@@ -407,7 +450,6 @@
             btn.id = `btn-${classId}`;
             
             if (mode === 'tv_mode') {
-                // TV模式
                 btn.className = `class-btn w-full h-full rounded-lg font-black text-3xl md:text-5xl border border-gray-600 text-gray-400 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 flex items-center justify-center`;
             } else if (mode === 'led_wall') {
                 btn.className = `class-btn flex-1 w-full rounded font-black border-2 border-gray-600 text-gray-500 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 leading-none tracking-wider flex items-center justify-center`;
@@ -418,6 +460,14 @@
                 }
             } else if (mode === 'mobile_mode') {
                 btn.className = `class-btn h-14 rounded-lg font-bold text-xl border border-gray-600 text-gray-400 active:border-blue-400 active:text-blue-300 focus:outline-none select-none bg-gray-900 shadow-sm`;
+            } else if (mode === 'kiosk_mode') {
+                // Kiosk 模式按鈕：
+                // flex-1: 平分寬度
+                // h-full: 填滿行高
+                // text-6xl / clamp: 極大字體
+                btn.className = `class-btn flex-1 h-full rounded-xl font-black border-4 border-gray-700 text-gray-500 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 flex items-center justify-center leading-none`;
+                // 動態字體：根據螢幕寬度自動縮放，確保 7 班同列時也能顯示
+                btn.style.fontSize = "clamp(2rem, 8vw, 6rem)";
             }
             
             btn.innerText = classId;
