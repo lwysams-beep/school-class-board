@@ -144,17 +144,26 @@
                 </div>
                 
                 <div class="flex flex-col gap-2 items-center md:items-end w-full md:w-auto">
-                    <!-- 班級模式切換 -->
-                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center">
-                        <button onclick="changeClassMode('normal')" id="btn-class-normal" class="flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white">
-                            平日 (28)
+                    
+                    <!-- 第一排控制：聲音開關 + 班級模式 -->
+                    <div class="flex gap-2 w-full md:w-auto justify-end">
+                        <!-- 聲音開關 -->
+                        <button onclick="toggleSound()" id="btn-sound" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 border border-gray-600 hover:text-white whitespace-nowrap flex items-center gap-1">
+                            <span>🔇</span> 靜音
                         </button>
-                        <button onclick="changeClassMode('assessment')" id="btn-class-assessment" class="flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white">
-                            評估日 (33)
-                        </button>
+
+                        <!-- 班級模式切換 -->
+                        <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
+                            <button onclick="changeClassMode('normal')" id="btn-class-normal" class="px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white">
+                                平日
+                            </button>
+                            <button onclick="changeClassMode('assessment')" id="btn-class-assessment" class="px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white">
+                                評估日
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- 顯示佈局切換 -->
+                    <!-- 第二排控制：顯示佈局切換 -->
                     <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center overflow-x-auto max-w-[95vw]">
                         <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white whitespace-nowrap">
                             TV模式
@@ -188,7 +197,135 @@
         const numToChinese = { 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六' };
         
         window.currentLayout = 'tv_mode'; 
-        window.currentClassMode = 'normal'; 
+        window.currentClassMode = 'normal';
+        
+        // --- 聲音控制變數 ---
+        window.isSoundOn = false;
+        let isFirstLoad = true; 
+        
+        // Web Audio Context (延遲初始化)
+        let audioCtx = null;
+
+        // ----------------------------------------------------
+        // 4音合成器邏輯 (4-Note Chime) - 全上行
+        // ----------------------------------------------------
+        
+        // 基礎頻率 (Hz)
+        const notes = {
+            'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77,
+            'C6': 1046.50
+        };
+
+        // 播放單個音符
+        function playTone(freq, startTime, duration) {
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            // 使用 Sine + Triangle 混合，製造清脆的電子鐘聲
+            osc1.type = 'sine';
+            osc1.frequency.value = freq;
+            
+            osc2.type = 'triangle';
+            osc2.frequency.value = freq; 
+
+            // 混合
+            osc1.connect(gainNode);
+            osc2.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            // 包絡 (Envelope) - 鐘聲感
+            const volume = 0.2; // 音量適中
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01); // 極快起音 (Attack)
+            gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration); // 自然衰減 (Decay)
+
+            osc1.start(startTime);
+            osc1.stop(startTime + duration);
+            osc2.start(startTime);
+            osc2.stop(startTime + duration);
+        }
+
+        // 播放 4 音鈴聲
+        function playChime(classId) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const grade = parseInt(classId.charAt(0));
+            // 處理班別字元 (S1, S2 也視為 S 類別處理，或獨立處理)
+            let cls = classId.substring(1); 
+            if (cls.startsWith('S')) cls = 'S'; // 將 S, S1, S2 歸類為 S
+
+            const now = audioCtx.currentTime;
+            const noteDuration = 1.0; // 單音長度
+            const interval = 0.18; // 4個音的間隔速度 (稍快，更像提示音)
+
+            // 1. 決定基音 (Root Note) - 根據年級
+            let rootFreq = notes['C4'];
+            if (grade === 2) rootFreq = notes['D4'];
+            if (grade === 3) rootFreq = notes['E4'];
+            if (grade === 4) rootFreq = notes['F4'];
+            if (grade === 5) rootFreq = notes['G4'];
+            if (grade === 6) rootFreq = notes['A4'];
+
+            // 2. 決定 4 個音的頻率 (全上行)
+            let freqs = [];
+
+            if (cls === 'A') {
+                // A班: 大三和弦 + 八度 (1, 3, 5, 8) - 最經典的 Bing-Bong-Bing-Bong
+                freqs = [rootFreq, rootFreq * 1.25, rootFreq * 1.5, rootFreq * 2.0];
+            } 
+            else if (cls === 'B') {
+                // B班: 前四音 (1, 2, 3, 5) - 溫柔上行
+                freqs = [rootFreq, rootFreq * 1.125, rootFreq * 1.25, rootFreq * 1.5];
+            }
+            else if (cls === 'C') {
+                // C班: 大四六 (1, 4, 6, 8) - 明亮開朗
+                freqs = [rootFreq, rootFreq * 1.334, rootFreq * 1.667, rootFreq * 2.0];
+            }
+            else if (cls === 'D') {
+                // D班: 大七 (1, 3, 5, 7) - 夢幻爵士感
+                freqs = [rootFreq, rootFreq * 1.25, rootFreq * 1.5, rootFreq * 1.875];
+            }
+            else if (cls === 'E') {
+                // E班: 大跨度 (1, 5, 8, 10) - 跳躍感
+                freqs = [rootFreq, rootFreq * 1.5, rootFreq * 2.0, rootFreq * 2.5];
+            }
+            else {
+                // S/其他: 全音階感 (1, 2, 3, #4) - 特殊現代感
+                freqs = [rootFreq, rootFreq * 1.125, rootFreq * 1.25, rootFreq * 1.414];
+            }
+
+            // 3. 播放 4 個音
+            playTone(freqs[0], now, noteDuration);
+            playTone(freqs[1], now + interval, noteDuration);
+            playTone(freqs[2], now + interval * 2, noteDuration);
+            playTone(freqs[3], now + interval * 3, noteDuration);
+        }
+
+        // ----------------------------------------------------
+        // 聲音控制 UI
+        // ----------------------------------------------------
+        window.toggleSound = function() {
+            window.isSoundOn = !window.isSoundOn;
+            const btn = document.getElementById('btn-sound');
+            
+            if (window.isSoundOn) {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                btn.innerHTML = '<span>🔊</span> 聲音開啟';
+                btn.className = btn.className.replace('text-gray-400', 'bg-green-600 text-white').replace('border-gray-600', 'border-transparent');
+                
+                // 播放測試音 (1A 班的經典 C-E-G-C)
+                playChime("1A");
+            } else {
+                btn.innerHTML = '<span>🔇</span> 靜音';
+                btn.className = "px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 border border-gray-600 hover:text-white whitespace-nowrap flex items-center gap-1";
+                if(audioCtx) audioCtx.suspend();
+            }
+        };
 
         window.changeClassMode = function(mode) {
             window.currentClassMode = mode;
@@ -196,11 +333,11 @@
             const assessBtn = document.getElementById('btn-class-assessment');
 
             if (mode === 'normal') {
-                normalBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white shadow-lg";
-                assessBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white";
+                normalBtn.className = "px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white shadow-lg";
+                assessBtn.className = "px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white";
             } else {
-                normalBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white";
-                assessBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white shadow-lg";
+                normalBtn.className = "px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white";
+                assessBtn.className = "px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white shadow-lg";
             }
             initBoard();
             if (window.lastData) applyDataToUI(window.lastData);
@@ -221,13 +358,11 @@
             const baseBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
             const activeBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg whitespace-nowrap";
             
-            // 重置按鈕狀態
             tvBtn.className = baseBtnClass;
             ledBtn.className = (mode === 'led_wall') ? activeBtnClass.replace('bg-blue-600', 'bg-teal-600') : baseBtnClass; 
             mobileBtn.className = (mode === 'mobile_mode') ? activeBtnClass.replace('bg-blue-600', 'bg-orange-600') : baseBtnClass;
             kioskBtn.className = (mode === 'kiosk_mode') ? activeBtnClass.replace('bg-blue-600', 'bg-indigo-600') : baseBtnClass;
 
-            // 重置 Wrapper 樣式
             wrapper.style.maxWidth = "177.78vh";
             wrapper.style.aspectRatio = "16/9";
             wrapper.style.height = "auto";
@@ -240,7 +375,6 @@
             container.style.flex = "none"; 
 
             if (mode === 'tv_mode') {
-                // ... TV Mode ...
                 tvBtn.className = activeBtnClass;
                 header.style.order = "0"; 
                 header.classList.remove('mt-auto'); 
@@ -251,7 +385,6 @@
                 container.style.overflowY = "hidden";
 
             } else if (mode === 'led_wall') {
-                // ... LED Wall Mode ...
                 header.style.order = "2"; 
                 header.classList.remove('mb-2');
                 header.classList.add('mt-auto'); 
@@ -259,7 +392,6 @@
                 wrapper.classList.add('justify-between');
 
             } else if (mode === 'mobile_mode') {
-                // ... Mobile Mode ...
                 wrapper.style.maxWidth = "100%";
                 wrapper.style.aspectRatio = "unset";
                 wrapper.style.height = "100vh"; 
@@ -271,20 +403,18 @@
                 container.style.overflowY = "auto";
 
             } else if (mode === 'kiosk_mode') {
-                // === Kiosk Mode (直立電視) ===
-                // 修改：解除強制 9:16，自動填滿寬度
                 wrapper.style.maxWidth = "100%"; 
                 wrapper.style.aspectRatio = "unset"; 
-                wrapper.style.height = "100vh"; // 填滿高度
+                wrapper.style.height = "100vh"; 
                 
                 header.style.order = "0";
                 header.classList.remove('mt-auto');
                 header.classList.add('mb-2');
                 
                 container.style.order = "1";
-                container.style.flex = "1"; // 自動填滿剩餘空間
+                container.style.flex = "1"; 
                 container.style.height = "100%"; 
-                container.style.overflowY = "hidden"; // 不允許捲動，全螢幕固定
+                container.style.overflowY = "hidden"; 
             }
 
             initBoard();
@@ -416,20 +546,13 @@
                 });
 
             } else if (window.currentLayout === 'kiosk_mode') {
-                // === Kiosk Mode (直立電視) ===
-                // h-full 填滿高度, gap-2 增加間距
                 container.className = "w-full flex flex-col gap-2 p-2 h-full";
 
                 grades.forEach(grade => {
                     const currentClasses = getClassesForGrade(grade);
-                    
-                    // 每一行 (代表一個年級)
-                    // flex-1: 讓6個年級平分高度
                     const row = document.createElement('div');
                     row.className = 'flex-1 w-full flex gap-2';
                     
-                    // 不需要標題，直接放按鈕
-                    // 按鈕容器也是 flex，讓按鈕平分寬度
                     const btnContainer = document.createElement('div');
                     btnContainer.className = 'flex-1 flex gap-2 w-full h-full';
 
@@ -461,12 +584,7 @@
             } else if (mode === 'mobile_mode') {
                 btn.className = `class-btn h-14 rounded-lg font-bold text-xl border border-gray-600 text-gray-400 active:border-blue-400 active:text-blue-300 focus:outline-none select-none bg-gray-900 shadow-sm`;
             } else if (mode === 'kiosk_mode') {
-                // Kiosk 模式按鈕：
-                // flex-1: 平分寬度
-                // h-full: 填滿行高
-                // text-6xl / clamp: 極大字體
                 btn.className = `class-btn flex-1 h-full rounded-xl font-black border-4 border-gray-700 text-gray-500 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 flex items-center justify-center leading-none`;
-                // 動態字體：根據螢幕寬度自動縮放，確保 7 班同列時也能顯示
                 btn.style.fontSize = "clamp(2rem, 8vw, 6rem)";
             }
             
@@ -480,12 +598,11 @@
             const btn = document.getElementById(`btn-${classId}`);
             if (!btn) return;
             
-            // 檢查所有可能的光暈 class
             let hasGlow = false;
             for(let i=1; i<=6; i++) {
                 if(btn.classList.contains(`glow-${i}`)) hasGlow = true;
             }
-            const newState = !hasGlow; // 如果有任何光暈，新狀態就是關閉
+            const newState = !hasGlow; 
 
             try {
                 await setDoc(statusDocRef, { [classId]: newState }, { merge: true });
@@ -508,7 +625,17 @@
         function setupRealtimeListener() {
             onSnapshot(statusDocRef, (docSnapshot) => {
                 const data = docSnapshot.data() || {};
+                
+                if (!isFirstLoad && window.isSoundOn) {
+                    Object.keys(data).forEach(key => {
+                        if (data[key] === true && window.lastData[key] !== true) {
+                            playChime(key); // 播放鈴聲
+                        }
+                    });
+                }
+
                 window.lastData = data; 
+                isFirstLoad = false; 
                 
                 currentDbDate = data.lastResetDate;
                 const today = getHKDateString();
@@ -543,20 +670,16 @@
             const btn = document.getElementById(`btn-${classId}`);
             if (!btn) return;
 
-            // 從 classId 取得年級 (第一個字元)
             const grade = parseInt(classId.charAt(0));
             const glowClass = `glow-${grade}`;
 
-            // 先移除所有可能的光暈 class 和通用樣式
             for(let i=1; i<=6; i++) btn.classList.remove(`glow-${i}`);
             btn.classList.remove('border-transparent');
 
             if (isActive) {
-                // 點亮：加入對應年級的 glow class
                 btn.classList.add(glowClass, 'border-transparent');
                 btn.classList.remove('border-gray-600', 'text-gray-400', 'text-gray-500', 'bg-gray-900');
             } else {
-                // 熄滅：恢復預設
                 const defaultTextColor = window.currentLayout === 'led_wall' ? 'text-gray-500' : 'text-gray-400';
                 btn.classList.add('border-gray-600', defaultTextColor, 'bg-gray-900');
             }
