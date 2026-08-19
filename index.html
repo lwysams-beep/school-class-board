@@ -1,10 +1,10 @@
-<!-- Version 1.5 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (修復手機模式 6D/6E 換行與觸控遮擋問題) -->
+<!-- Version 1.7 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (手機模式 6 年級後加入兩行空白防遮擋) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全校班級顯示板 v1.5</title>
+    <title>全校班級顯示板 v1.7</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts -->
@@ -135,7 +135,7 @@
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
                 <div class="text-center md:text-left">
                     <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.5</span>
+                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.7</span>
                     </h1>
                     <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -143,36 +143,32 @@
                     </p>
                 </div>
                 
-                <div class="flex flex-col gap-2 items-center md:items-end w-full md:w-auto">
-                    <!-- 控制按鈕組：音效與語音測試 -->
-                    <div class="flex gap-2 w-full md:w-auto justify-center">
-                        <button onclick="toggleSound()" id="btn-sound-toggle" class="px-3 py-1 rounded text-xs md:text-sm font-bold bg-green-600 text-white flex items-center gap-1 shadow">
-                            <span id="sound-icon">🔊</span> 音效: 開
-                        </button>
-                        <button onclick="testAudio()" class="px-3 py-1 rounded text-xs md:text-sm font-bold bg-gray-700 hover:bg-gray-600 text-gray-200 shadow">
-                            測試語音
-                        </button>
-                    </div>
+                <!-- 控制按鈕區域 -->
+                <div class="flex flex-wrap gap-2 items-center justify-center md:justify-end w-full md:w-auto">
+                    <!-- 音效開關按鈕 -->
+                    <button onclick="toggleSound()" id="btn-sound-toggle" class="px-3 py-2 rounded text-xs md:text-sm font-bold bg-green-600 hover:bg-green-500 text-white flex items-center gap-1 shadow transition-colors">
+                        <span id="sound-icon">🔊</span> 音效: 開
+                    </button>
 
                     <!-- 班級模式切換 -->
-                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center">
-                        <button onclick="changeClassMode('normal')" id="btn-class-normal" class="flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white">
+                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
+                        <button onclick="changeClassMode('normal')" id="btn-class-normal" class="px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white">
                             平日 (28)
                         </button>
-                        <button onclick="changeClassMode('assessment')" id="btn-class-assessment" class="flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white">
+                        <button onclick="changeClassMode('assessment')" id="btn-class-assessment" class="px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white">
                             評估日 (32)
                         </button>
                     </div>
 
                     <!-- 顯示佈局切換 -->
-                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center overflow-x-auto">
-                        <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white whitespace-nowrap">
+                    <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 overflow-x-auto">
+                        <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white whitespace-nowrap">
                             TV模式
                         </button>
-                        <button onclick="changeLayout('led_wall')" id="btn-mode-led" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                        <button onclick="changeLayout('led_wall')" id="btn-mode-led" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
                             LED WALL
                         </button>
-                        <button onclick="changeLayout('mobile_mode')" id="btn-mode-mobile" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                        <button onclick="changeLayout('mobile_mode')" id="btn-mode-mobile" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
                             手機模式
                         </button>
                     </div>
@@ -198,7 +194,7 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // Version 1.5 手動設定區：
+        // Version 1.7 手動設定區：
         // 1. extraRow: 最上方的空白 Row
         // 2. name: 線段名稱
         // =========================================================================
@@ -226,16 +222,16 @@
         window.currentClassMode = 'normal'; 
         window.isSoundEnabled = true;
 
-        // 音效與語音模組
+        // 音效模組 (純音樂提示音)
         window.toggleSound = function() {
             window.isSoundEnabled = !window.isSoundEnabled;
             const soundBtn = document.getElementById('btn-sound-toggle');
             if (window.isSoundEnabled) {
-                soundBtn.className = "px-3 py-1 rounded text-xs md:text-sm font-bold bg-green-600 text-white flex items-center gap-1 shadow";
+                soundBtn.className = "px-3 py-2 rounded text-xs md:text-sm font-bold bg-green-600 hover:bg-green-500 text-white flex items-center gap-1 shadow transition-colors";
                 soundBtn.innerHTML = `<span>🔊</span> 音效: 開`;
                 playChimeSound();
             } else {
-                soundBtn.className = "px-3 py-1 rounded text-xs md:text-sm font-bold bg-red-600 text-white flex items-center gap-1 shadow";
+                soundBtn.className = "px-3 py-2 rounded text-xs md:text-sm font-bold bg-red-600 hover:bg-red-500 text-white flex items-center gap-1 shadow transition-colors";
                 soundBtn.innerHTML = `<span>🔇</span> 音效: 關`;
             }
         };
@@ -248,57 +244,25 @@
                 const ctx = new AudioCtx();
                 const now = ctx.currentTime;
                 
-                const osc1 = ctx.createOscillator();
-                const gain1 = ctx.createGain();
-                osc1.type = 'sine';
-                osc1.frequency.setValueAtTime(659.25, now);
-                gain1.gain.setValueAtTime(0.2, now);
-                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-                osc1.connect(gain1);
-                gain1.connect(ctx.destination);
-                osc1.start(now);
-                osc1.stop(now + 0.4);
-
-                const osc2 = ctx.createOscillator();
-                const gain2 = ctx.createGain();
-                osc2.type = 'sine';
-                osc2.frequency.setValueAtTime(880.00, now + 0.15);
-                gain2.gain.setValueAtTime(0.25, now + 0.15);
-                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-                osc2.connect(gain2);
-                gain2.connect(ctx.destination);
-                osc2.start(now + 0.15);
-                osc2.stop(now + 0.6);
+                const freqs = [523.25, 659.25, 783.99]; 
+                freqs.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.4);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.4);
+                });
             } catch (e) {
-                console.warn("AudioContext 無法播放:", e);
+                console.warn("Audio Context 無法播放音效:", e);
             }
         }
-
-        function announceClass(classId) {
-            if (!window.isSoundEnabled) return;
-            playChimeSound();
-
-            if ('speechSynthesis' in window) {
-                setTimeout(() => {
-                    const gradeNum = classId.charAt(0);
-                    const letter = classId.slice(1);
-                    const chineseGrade = numToChinese[gradeNum] || gradeNum;
-                    
-                    const text = `${chineseGrade} ${letter} 班`;
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = 'zh-HK';
-                    utterance.rate = 0.9;
-                    utterance.pitch = 1.0;
-                    
-                    window.speechSynthesis.cancel();
-                    window.speechSynthesis.speak(utterance);
-                }, 200);
-            }
-        }
-
-        window.testAudio = function() {
-            announceClass('1A');
-        };
 
         window.changeClassMode = function(mode) {
             window.currentClassMode = mode;
@@ -328,8 +292,8 @@
             const linesContainer = document.getElementById('led-lines-container');
             const wrapper = document.getElementById('screen-wrapper');
             
-            const baseBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
-            const activeBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg whitespace-nowrap";
+            const baseBtnClass = "px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
+            const activeBtnClass = "px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg whitespace-nowrap";
             
             tvBtn.className = baseBtnClass;
             ledBtn.className = (mode === 'led_wall') ? activeBtnClass.replace('bg-blue-600', 'bg-teal-600') : baseBtnClass; 
@@ -522,7 +486,6 @@
                 });
 
             } else if (window.currentLayout === 'mobile_mode') {
-                // v1.5 修改：底部保留 pb-32 空間，防止被手機導航列截斷遮擋
                 container.className = "w-full flex flex-col gap-4 pb-32 px-2";
 
                 grades.forEach(grade => {
@@ -536,13 +499,11 @@
                     card.appendChild(title);
 
                     const btnContainer = document.createElement('div');
-                    
-                    // v1.5 修改：根據班別數量（4, 5, 6班）動態計算手機欄數，防止 6D/6E 單獨換行
                     let gridColsClass = 'grid-cols-4';
                     if (currentClasses.length === 5) {
-                        gridColsClass = 'grid-cols-5'; // 5 個班 (如 6A-6E) 剛好排成一行
+                        gridColsClass = 'grid-cols-5';
                     } else if (currentClasses.length >= 6) {
-                        gridColsClass = 'grid-cols-3'; // 6 個班 (評估日 6A-6S) 對稱排成 3x2 兩行
+                        gridColsClass = 'grid-cols-3';
                     }
                     btnContainer.className = `grid ${gridColsClass} gap-2`;
 
@@ -552,6 +513,17 @@
                     card.appendChild(btnContainer);
                     container.appendChild(card);
                 });
+
+                // =========================================================================
+                // Version 1.7 修改：於 6 年級卡片下方加入兩行空白佔位區，解決手機底部遮擋問題
+                // =========================================================================
+                const spacer1 = document.createElement('div');
+                spacer1.className = 'h-12 w-full flex-shrink-0'; // 第一行空白
+                container.appendChild(spacer1);
+
+                const spacer2 = document.createElement('div');
+                spacer2.className = 'h-12 w-full flex-shrink-0'; // 第二行空白
+                container.appendChild(spacer2);
             }
         }
 
@@ -571,7 +543,6 @@
                     btn.style.fontSize = "clamp(1.5rem, 4vh, 3rem)"; 
                 }
             } else if (mode === 'mobile_mode') {
-                // v1.5 修改：手機模式微調高度與 min-w-0 防止文字擠壓
                 btn.className = `class-btn h-12 md:h-14 rounded-lg font-bold text-lg md:text-xl border border-gray-600 text-gray-400 active:border-blue-400 active:text-blue-300 focus:outline-none select-none bg-gray-900 shadow-sm flex items-center justify-center min-w-0`;
             }
             
@@ -646,7 +617,7 @@
                 updateButtonUI(classId, isNowActive);
 
                 if (shouldTriggerAudio && isNowActive && !wasActive) {
-                    announceClass(classId);
+                    playChimeSound();
                 }
             });
         }
