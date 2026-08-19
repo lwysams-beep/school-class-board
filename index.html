@@ -1,9 +1,10 @@
+<!-- Version 1.1 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (新增 LED WALL 線段顯示區) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全校班級顯示板</title>
+    <title>全校班級顯示板 v1.1</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts -->
@@ -41,7 +42,6 @@
         /* =========================================
            年級專屬顏色光暈設定 (彩虹色系)
            ========================================= */
-        /* 通用光暈屬性 - 完全未改動 */
         [class*="glow-"] {
             transform: scale(1.02); 
             font-weight: 900 !important;
@@ -49,45 +49,45 @@
             border-color: transparent !important;
         }
 
-        /* 1年級：粉紅色 (只改了顏色代碼，效果參數未變) */
+        /* 1年級：粉紅色 */
         .glow-1 {
             box-shadow: 0 0 20px #ec4899, 0 0 40px #be185d; 
-            background-color: #ec4899; /* pink-500 */
+            background-color: #ec4899; 
             color: #ffffff !important; 
         }
 
         /* 2年級：橙色 */
         .glow-2 {
             box-shadow: 0 0 20px #f97316, 0 0 40px #c2410c; 
-            background-color: #f97316; /* orange-500 */
+            background-color: #f97316; 
             color: #ffffff !important; 
         }
 
         /* 3年級：黃色 */
         .glow-3 {
             box-shadow: 0 0 20px #eab308, 0 0 40px #a16207; 
-            background-color: #eab308; /* yellow-500 */
+            background-color: #eab308; 
             color: #000000 !important; 
         }
 
         /* 4年級：綠色 */
         .glow-4 {
             box-shadow: 0 0 20px #22c55e, 0 0 40px #15803d; 
-            background-color: #22c55e; /* green-500 */
+            background-color: #22c55e; 
             color: #000000 !important; 
         }
 
         /* 5年級：藍色 */
         .glow-5 {
             box-shadow: 0 0 20px #3b82f6, 0 0 40px #1d4ed8; 
-            background-color: #3b82f6; /* blue-500 */
+            background-color: #3b82f6; 
             color: #ffffff !important; 
         }
 
         /* 6年級：紫色 */
         .glow-6 {
             box-shadow: 0 0 20px #a855f7, 0 0 40px #7e22ce; 
-            background-color: #a855f7; /* purple-500 */
+            background-color: #a855f7; 
             color: #ffffff !important; 
         }
         
@@ -135,7 +135,7 @@
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
                 <div class="text-center md:text-left">
                     <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                        全校班級顯示板
+                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.1</span>
                     </h1>
                     <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -171,8 +171,13 @@
         </header>
 
         <main id="board-container" class="w-full transition-all duration-500 z-10 mt-4 custom-scrollbar">
-            <!-- JS 生成 -->
+            <!-- JS 動態生成班級按鈕 -->
         </main>
+
+        <!-- v1.1 新增：LED WALL 專屬 1-14 號線段顯示區 -->
+        <div id="led-lines-container" class="w-full hidden z-10 mt-2 mb-2">
+            <!-- JS 動態生成線段 -->
+        </div>
 
     </div>
     
@@ -180,6 +185,27 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =========================================================================
+        // Version 1.1 手動設定區：1-14 號線段名稱設定 (從左至右 14 -> 1 呈現，即 1 號線在右)
+        // 您可以在此隨時修改 name 的文字，支援 <br> 換行標籤
+        // =========================================================================
+        const lineData = [
+            { id: 14, name: "欣盛" },
+            { id: 13, name: "華明<br>景盛" },
+            { id: 12, name: "牽晴間<br>華心" },
+            { id: 11, name: "祥華<br>碧湖" },
+            { id: 10, name: "火車站" },
+            { id: 9,  name: "火車站" },
+            { id: 8,  name: "皇后山校車" },
+            { id: 7,  name: "皇后山校車" },
+            { id: 6,  name: "跨境車<br>文錦渡" },
+            { id: 5,  name: "跨境車<br>福田" },
+            { id: 4,  name: "跨境車<br>蓮塘" },
+            { id: 3,  name: "1車" },
+            { id: 2,  name: "3車" },
+            { id: 1,  name: "11車" }
+        ];
 
         const grades = [1, 2, 3, 4, 5, 6];
         const numToChinese = { 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六' };
@@ -212,6 +238,7 @@
             
             const header = document.getElementById('main-header');
             const container = document.getElementById('board-container');
+            const linesContainer = document.getElementById('led-lines-container');
             const wrapper = document.getElementById('screen-wrapper');
             
             const baseBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
@@ -232,6 +259,9 @@
             container.style.overflowY = "visible";
             container.style.flex = "none"; 
 
+            // v1.1 控制線段區顯隱
+            if (linesContainer) linesContainer.classList.add('hidden');
+
             if (mode === 'tv_mode') {
                 tvBtn.className = activeBtnClass;
                 
@@ -247,11 +277,17 @@
             } else if (mode === 'led_wall') {
                 ledBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-teal-600');
                 
-                header.style.order = "2"; 
+                header.style.order = "3"; 
                 header.classList.remove('mb-2');
                 header.classList.add('mt-auto'); 
                 
                 container.style.order = "1";
+                if (linesContainer) {
+                    linesContainer.style.order = "2";
+                    linesContainer.classList.remove('hidden');
+                    renderLedLines(); // v1.1 渲染線段
+                }
+
                 wrapper.classList.add('justify-between');
 
             } else if (mode === 'mobile_mode') {
@@ -273,6 +309,27 @@
             initBoard();
             if (window.lastData) applyDataToUI(window.lastData);
         };
+
+        // v1.1 渲染 1-14 號線段表格
+        function renderLedLines() {
+            const container = document.getElementById('led-lines-container');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 2px;" class="w-full bg-gray-900/90 p-1 rounded-lg border border-gray-700 shadow-inner">
+                    ${lineData.map(item => `
+                        <div class="flex flex-col border border-gray-600 rounded bg-gray-800 text-center overflow-hidden">
+                            <div class="bg-gray-700 text-blue-300 font-black py-1 text-xs md:text-base border-b border-gray-600">
+                                ${item.id}
+                            </div>
+                            <div class="p-1 flex items-center justify-center flex-1 text-xs md:text-sm font-bold text-gray-100 leading-tight min-h-[55px] bg-gray-900/50">
+                                <span>${item.name}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
 
         function getClassesForGrade(grade) {
             let classes = ['A', 'B', 'C', 'D'];
@@ -401,7 +458,6 @@
             btn.id = `btn-${classId}`;
             
             if (mode === 'tv_mode') {
-                // TV模式
                 btn.className = `class-btn w-full h-full rounded-lg font-black text-3xl md:text-5xl border border-gray-600 text-gray-400 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 flex items-center justify-center`;
             } else if (mode === 'led_wall') {
                 btn.className = `class-btn flex-1 w-full rounded font-black border-2 border-gray-600 text-gray-500 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 leading-none tracking-wider flex items-center justify-center`;
@@ -424,12 +480,11 @@
             const btn = document.getElementById(`btn-${classId}`);
             if (!btn) return;
             
-            // 檢查所有可能的光暈 class
             let hasGlow = false;
             for(let i=1; i<=6; i++) {
                 if(btn.classList.contains(`glow-${i}`)) hasGlow = true;
             }
-            const newState = !hasGlow; // 如果有任何光暈，新狀態就是關閉
+            const newState = !hasGlow; 
 
             try {
                 await setDoc(statusDocRef, { [classId]: newState }, { merge: true });
@@ -487,20 +542,16 @@
             const btn = document.getElementById(`btn-${classId}`);
             if (!btn) return;
 
-            // 從 classId 取得年級 (第一個字元)
             const grade = parseInt(classId.charAt(0));
             const glowClass = `glow-${grade}`;
 
-            // 先移除所有可能的光暈 class 和通用樣式
             for(let i=1; i<=6; i++) btn.classList.remove(`glow-${i}`);
             btn.classList.remove('border-transparent');
 
             if (isActive) {
-                // 點亮：加入對應年級的 glow class
                 btn.classList.add(glowClass, 'border-transparent');
                 btn.classList.remove('border-gray-600', 'text-gray-400', 'text-gray-500', 'bg-gray-900');
             } else {
-                // 熄滅：恢復預設
                 const defaultTextColor = window.currentLayout === 'led_wall' ? 'text-gray-500' : 'text-gray-400';
                 btn.classList.add('border-gray-600', defaultTextColor, 'bg-gray-900');
             }
