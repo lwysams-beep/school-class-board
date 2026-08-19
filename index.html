@@ -1,10 +1,10 @@
-<!-- Version 1.3 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (班別表格與排隊表格清晰分隔) -->
+<!-- Version 1.5 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (修復手機模式 6D/6E 換行與觸控遮擋問題) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全校班級顯示板 v1.3</title>
+    <title>全校班級顯示板 v1.5</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts -->
@@ -135,7 +135,7 @@
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
                 <div class="text-center md:text-left">
                     <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.3</span>
+                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.5</span>
                     </h1>
                     <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -144,6 +144,16 @@
                 </div>
                 
                 <div class="flex flex-col gap-2 items-center md:items-end w-full md:w-auto">
+                    <!-- 控制按鈕組：音效與語音測試 -->
+                    <div class="flex gap-2 w-full md:w-auto justify-center">
+                        <button onclick="toggleSound()" id="btn-sound-toggle" class="px-3 py-1 rounded text-xs md:text-sm font-bold bg-green-600 text-white flex items-center gap-1 shadow">
+                            <span id="sound-icon">🔊</span> 音效: 開
+                        </button>
+                        <button onclick="testAudio()" class="px-3 py-1 rounded text-xs md:text-sm font-bold bg-gray-700 hover:bg-gray-600 text-gray-200 shadow">
+                            測試語音
+                        </button>
+                    </div>
+
                     <!-- 班級模式切換 -->
                     <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 w-full md:w-auto justify-center">
                         <button onclick="changeClassMode('normal')" id="btn-class-normal" class="flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white">
@@ -175,7 +185,7 @@
             <!-- JS 動態生成班級按鈕 -->
         </main>
 
-        <!-- v1.3：區域二：排隊/線段表格區（包含上方顯著的科技感分隔線與獨立間距） -->
+        <!-- 區域二：排隊/線段表格區 -->
         <div id="led-lines-container" class="w-full hidden z-10 mt-6 pt-4 border-t-2 border-teal-500/40 mb-2">
             <!-- JS 動態生成線段 -->
         </div>
@@ -188,9 +198,9 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // =========================================================================
-        // Version 1.3 手動設定區：
-        // 1. extraRow: 最上方的空白 Row，可在雙引號內輸入文字（支援 <br> 換行）
-        // 2. name: 線段名稱，可在雙引號內輸入文字（支援 <br> 換行）
+        // Version 1.5 手動設定區：
+        // 1. extraRow: 最上方的空白 Row
+        // 2. name: 線段名稱
         // =========================================================================
         const lineData = [
             { id: 14, name: "欣盛",         extraRow: "" },
@@ -214,6 +224,81 @@
         
         window.currentLayout = 'tv_mode'; 
         window.currentClassMode = 'normal'; 
+        window.isSoundEnabled = true;
+
+        // 音效與語音模組
+        window.toggleSound = function() {
+            window.isSoundEnabled = !window.isSoundEnabled;
+            const soundBtn = document.getElementById('btn-sound-toggle');
+            if (window.isSoundEnabled) {
+                soundBtn.className = "px-3 py-1 rounded text-xs md:text-sm font-bold bg-green-600 text-white flex items-center gap-1 shadow";
+                soundBtn.innerHTML = `<span>🔊</span> 音效: 開`;
+                playChimeSound();
+            } else {
+                soundBtn.className = "px-3 py-1 rounded text-xs md:text-sm font-bold bg-red-600 text-white flex items-center gap-1 shadow";
+                soundBtn.innerHTML = `<span>🔇</span> 音效: 關`;
+            }
+        };
+
+        function playChimeSound() {
+            if (!window.isSoundEnabled) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+                
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(659.25, now);
+                gain1.gain.setValueAtTime(0.2, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.4);
+
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(880.00, now + 0.15);
+                gain2.gain.setValueAtTime(0.25, now + 0.15);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                osc2.start(now + 0.15);
+                osc2.stop(now + 0.6);
+            } catch (e) {
+                console.warn("AudioContext 無法播放:", e);
+            }
+        }
+
+        function announceClass(classId) {
+            if (!window.isSoundEnabled) return;
+            playChimeSound();
+
+            if ('speechSynthesis' in window) {
+                setTimeout(() => {
+                    const gradeNum = classId.charAt(0);
+                    const letter = classId.slice(1);
+                    const chineseGrade = numToChinese[gradeNum] || gradeNum;
+                    
+                    const text = `${chineseGrade} ${letter} 班`;
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'zh-HK';
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.0;
+                    
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utterance);
+                }, 200);
+            }
+        }
+
+        window.testAudio = function() {
+            announceClass('1A');
+        };
 
         window.changeClassMode = function(mode) {
             window.currentClassMode = mode;
@@ -228,7 +313,7 @@
                 assessBtn.className = "flex-1 md:flex-none px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white shadow-lg";
             }
             initBoard();
-            if (window.lastData) applyDataToUI(window.lastData);
+            if (window.lastData) applyDataToUI(window.lastData, false);
         };
 
         window.changeLayout = function(mode) {
@@ -308,10 +393,9 @@
             }
 
             initBoard();
-            if (window.lastData) applyDataToUI(window.lastData);
+            if (window.lastData) applyDataToUI(window.lastData, false);
         };
 
-        // v1.3 渲染排隊表格區（帶分隔標題列）
         function renderLedLines() {
             const container = document.getElementById('led-lines-container');
             if (!container) return;
@@ -326,15 +410,12 @@
                 <div style="display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 2px;" class="w-full bg-gray-900/90 p-1 rounded-lg border border-gray-700 shadow-inner">
                     ${lineData.map(item => `
                         <div class="flex flex-col border border-gray-600 rounded bg-gray-800 text-center overflow-hidden">
-                            <!-- 最上方：空白預留 Row -->
                             <div class="p-0.5 text-xs font-bold text-yellow-300 bg-gray-800 border-b border-gray-600 min-h-[28px] flex items-center justify-center leading-tight">
                                 <span>${item.extraRow || ''}</span>
                             </div>
-                            <!-- 中間：線號 (14 -> 1) -->
                             <div class="bg-gray-700 text-blue-300 font-black py-0.5 text-xs md:text-base border-b border-gray-600">
                                 ${item.id}
                             </div>
-                            <!-- 最下方：線段名稱 -->
                             <div class="p-1 flex items-center justify-center flex-1 text-xs md:text-sm font-bold text-gray-100 leading-tight min-h-[50px] bg-gray-900/50">
                                 <span>${item.name}</span>
                             </div>
@@ -389,6 +470,7 @@
 
         let currentDbDate = null;
         window.lastData = {};
+        let isFirstLoad = true;
 
         function initBoard() {
             container.innerHTML = ''; 
@@ -440,7 +522,8 @@
                 });
 
             } else if (window.currentLayout === 'mobile_mode') {
-                container.className = "w-full flex flex-col gap-4 pb-20 px-2";
+                // v1.5 修改：底部保留 pb-32 空間，防止被手機導航列截斷遮擋
+                container.className = "w-full flex flex-col gap-4 pb-32 px-2";
 
                 grades.forEach(grade => {
                     const currentClasses = getClassesForGrade(grade);
@@ -453,7 +536,15 @@
                     card.appendChild(title);
 
                     const btnContainer = document.createElement('div');
-                    btnContainer.className = 'grid grid-cols-4 gap-3';
+                    
+                    // v1.5 修改：根據班別數量（4, 5, 6班）動態計算手機欄數，防止 6D/6E 單獨換行
+                    let gridColsClass = 'grid-cols-4';
+                    if (currentClasses.length === 5) {
+                        gridColsClass = 'grid-cols-5'; // 5 個班 (如 6A-6E) 剛好排成一行
+                    } else if (currentClasses.length >= 6) {
+                        gridColsClass = 'grid-cols-3'; // 6 個班 (評估日 6A-6S) 對稱排成 3x2 兩行
+                    }
+                    btnContainer.className = `grid ${gridColsClass} gap-2`;
 
                     currentClasses.forEach(cls => {
                         createButton(grade, cls, btnContainer, 'mobile_mode');
@@ -480,7 +571,8 @@
                     btn.style.fontSize = "clamp(1.5rem, 4vh, 3rem)"; 
                 }
             } else if (mode === 'mobile_mode') {
-                btn.className = `class-btn h-14 rounded-lg font-bold text-xl border border-gray-600 text-gray-400 active:border-blue-400 active:text-blue-300 focus:outline-none select-none bg-gray-900 shadow-sm`;
+                // v1.5 修改：手機模式微調高度與 min-w-0 防止文字擠壓
+                btn.className = `class-btn h-12 md:h-14 rounded-lg font-bold text-lg md:text-xl border border-gray-600 text-gray-400 active:border-blue-400 active:text-blue-300 focus:outline-none select-none bg-gray-900 shadow-sm flex items-center justify-center min-w-0`;
             }
             
             btn.innerText = classId;
@@ -520,7 +612,6 @@
         function setupRealtimeListener() {
             onSnapshot(statusDocRef, (docSnapshot) => {
                 const data = docSnapshot.data() || {};
-                window.lastData = data; 
                 
                 currentDbDate = data.lastResetDate;
                 const today = getHKDateString();
@@ -529,7 +620,10 @@
                     return; 
                 }
 
-                applyDataToUI(data); 
+                applyDataToUI(data, !isFirstLoad); 
+                window.lastData = data; 
+                isFirstLoad = false;
+                
                 loadingOverlay.style.display = 'none';
             }, (error) => {
                 console.error("同步錯誤:", error);
@@ -542,12 +636,18 @@
             }, 60000); 
         }
 
-        function applyDataToUI(data) {
+        function applyDataToUI(newData, shouldTriggerAudio = true) {
             const allBtns = document.querySelectorAll('button[id^="btn-"]');
             allBtns.forEach(btn => {
                 const classId = btn.id.replace('btn-', '');
-                const isActive = data[classId] === true;
-                updateButtonUI(classId, isActive);
+                const isNowActive = newData[classId] === true;
+                const wasActive = window.lastData[classId] === true;
+
+                updateButtonUI(classId, isNowActive);
+
+                if (shouldTriggerAudio && isNowActive && !wasActive) {
+                    announceClass(classId);
+                }
             });
         }
 
