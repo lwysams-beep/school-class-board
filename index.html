@@ -1,10 +1,10 @@
-<!-- Version 1.8 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (升級各年級與班別獨立 4 音和弦鈴聲) -->
+<!-- Version 1.9 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (升級各年級與班別獨立 4 音和弦鈴聲) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全校班級顯示板 v1.8</title>
+    <title>全校班級顯示板 v1.9</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts -->
@@ -135,7 +135,7 @@
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
                 <div class="text-center md:text-left">
                     <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.8</span>
+                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.9</span>
                     </h1>
                     <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -216,6 +216,7 @@
         window.currentLayout = 'tv_mode'; 
         window.currentClassMode = 'normal'; 
         window.isSoundEnabled = true;
+        window.isLedWallSwapped = false;
 
         // Web Audio Context
         let audioCtx = null;
@@ -316,6 +317,19 @@
             }
         };
 
+        window.toggleLedWallOrder = function() {
+            window.isLedWallSwapped = !window.isLedWallSwapped;
+            const container = document.getElementById('board-container');
+            const linesContainer = document.getElementById('led-lines-container');
+            if (window.isLedWallSwapped) {
+                container.style.order = "2";
+                linesContainer.style.order = "1";
+            } else {
+                container.style.order = "1";
+                linesContainer.style.order = "2";
+            }
+        };
+
         window.changeClassMode = function(mode) {
             window.currentClassMode = mode;
             const normalBtn = document.getElementById('btn-class-normal');
@@ -383,9 +397,18 @@
                 header.classList.remove('mb-2');
                 header.classList.add('mt-auto'); 
                 
-                container.style.order = "1";
+                if (window.isLedWallSwapped) {
+                    container.style.order = "2";
+                } else {
+                    container.style.order = "1";
+                }
+                
                 if (linesContainer) {
-                    linesContainer.style.order = "2";
+                    if (window.isLedWallSwapped) {
+                        linesContainer.style.order = "1";
+                    } else {
+                        linesContainer.style.order = "2";
+                    }
                     linesContainer.classList.remove('hidden');
                     renderLedLines(); 
                 }
@@ -422,6 +445,9 @@
                         <span class="w-2 h-2 rounded-full bg-teal-400"></span>
                         放學線段指示區 (14 - 1 號線)
                     </span>
+                    <button onclick="toggleLedWallOrder()" class="px-2 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-xs font-bold transition-colors shadow">
+                        上下互換
+                    </button>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 2px;" class="w-full bg-gray-900/90 p-1 rounded-lg border border-gray-700 shadow-inner">
                     ${lineData.map(item => `
