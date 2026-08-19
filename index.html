@@ -1,10 +1,10 @@
-<!-- Version 1.9 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (新增 LED Wall 班別與線段區位置對調按鈕) -->
+<!-- Version 1.8 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (升級各年級與班別獨立 4 音和弦鈴聲) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全校班級顯示板 v1.9</title>
+    <title>全校班級顯示板 v1.8</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts -->
@@ -135,7 +135,7 @@
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
                 <div class="text-center md:text-left">
                     <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.9</span>
+                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.8</span>
                     </h1>
                     <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -216,11 +216,13 @@
         window.currentLayout = 'tv_mode'; 
         window.currentClassMode = 'normal'; 
         window.isSoundEnabled = true;
-        window.isLedSwapped = false; // 新增：記錄 LED Wall 上下區域是否對調
 
         // Web Audio Context
         let audioCtx = null;
 
+        // =========================================================================
+        // Version 1.8 升級版音效模組 (每級基音不同 + 各班和弦獨立)
+        // =========================================================================
         const notes = {
             'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
             'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77,
@@ -267,6 +269,7 @@
             const noteDuration = 0.8;
             const interval = 0.15;
 
+            // 1. 根據年級設定專屬基音 Frequency
             let rootFreq = notes['C4']; // P1
             if (grade === 2) rootFreq = notes['D4']; // P2
             if (grade === 3) rootFreq = notes['E4']; // P3
@@ -274,6 +277,7 @@
             if (grade === 5) rootFreq = notes['G4']; // P5
             if (grade === 6) rootFreq = notes['A4']; // P6
 
+            // 2. 根據班別設定和弦音程
             let freqs = [];
             if (cls === 'A') {
                 freqs = [rootFreq, rootFreq * 1.25, rootFreq * 1.5, rootFreq * 2.0];
@@ -289,6 +293,7 @@
                 freqs = [rootFreq, rootFreq * 1.125, rootFreq * 1.25, rootFreq * 1.414];
             }
 
+            // 3. 播放 4 音和弦鈴聲
             playTone(freqs[0], now, noteDuration);
             playTone(freqs[1], now + interval, noteDuration);
             playTone(freqs[2], now + interval * 2, noteDuration);
@@ -304,33 +309,12 @@
                 
                 soundBtn.className = "px-3 py-2 rounded text-xs md:text-sm font-bold bg-green-600 hover:bg-green-500 text-white flex items-center gap-1 shadow transition-colors";
                 soundBtn.innerHTML = `<span>🔊</span> 音效: 開`;
-                playChime("1A");
+                playChime("1A"); // 開啟時播放測試音效 (1A)
             } else {
                 soundBtn.className = "px-3 py-2 rounded text-xs md:text-sm font-bold bg-red-600 hover:bg-red-500 text-white flex items-center gap-1 shadow transition-colors";
                 soundBtn.innerHTML = `<span>🔇</span> 音效: 關`;
             }
         };
-
-        // 新增：切換 LED Wall 班別燈與線段區的位置對調
-        window.toggleLedSwap = function() {
-            window.isLedSwapped = !window.isLedSwapped;
-            updateLedWallOrders();
-        };
-
-        function updateLedWallOrders() {
-            const container = document.getElementById('board-container');
-            const linesContainer = document.getElementById('led-lines-container');
-            
-            if (window.currentLayout === 'led_wall') {
-                if (window.isLedSwapped) {
-                    container.style.order = "2";
-                    if (linesContainer) linesContainer.style.order = "1";
-                } else {
-                    container.style.order = "1";
-                    if (linesContainer) linesContainer.style.order = "2";
-                }
-            }
-        }
 
         window.changeClassMode = function(mode) {
             window.currentClassMode = mode;
@@ -399,12 +383,13 @@
                 header.classList.remove('mb-2');
                 header.classList.add('mt-auto'); 
                 
+                container.style.order = "1";
                 if (linesContainer) {
+                    linesContainer.style.order = "2";
                     linesContainer.classList.remove('hidden');
                     renderLedLines(); 
                 }
 
-                updateLedWallOrders(); // 更新上下位置順序
                 wrapper.classList.add('justify-between');
 
             } else if (mode === 'mobile_mode') {
@@ -437,9 +422,6 @@
                         <span class="w-2 h-2 rounded-full bg-teal-400"></span>
                         放學線段指示區 (14 - 1 號線)
                     </span>
-                    <button onclick="toggleLedSwap()" class="px-2.5 py-1 rounded text-xs font-bold bg-teal-700 hover:bg-teal-600 text-white border border-teal-500 transition-colors shadow flex items-center gap-1">
-                        <span>⇅</span> 位置對調
-                    </button>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 2px;" class="w-full bg-gray-900/90 p-1 rounded-lg border border-gray-700 shadow-inner">
                     ${lineData.map(item => `
@@ -584,6 +566,7 @@
                     container.appendChild(card);
                 });
 
+                // 手機模式下於 6 年級下方加入兩行空白佔位區
                 const spacer1 = document.createElement('div');
                 spacer1.className = 'h-12 w-full flex-shrink-0';
                 container.appendChild(spacer1);
@@ -683,6 +666,7 @@
 
                 updateButtonUI(classId, isNowActive);
 
+                // 當點亮該班級時，傳入 classId 播放專屬音效
                 if (shouldTriggerAudio && isNowActive && !wasActive) {
                     playChime(classId);
                 }
