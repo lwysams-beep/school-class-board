@@ -1,10 +1,10 @@
-<!-- Version 1.7 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (手機模式 6 年級後加入兩行空白防遮擋) -->
+<!-- Version 1.8 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (升級各年級與班別獨立 4 音和弦鈴聲) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全校班級顯示板 v1.7</title>
+    <title>全校班級顯示板 v1.8</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts -->
@@ -135,7 +135,7 @@
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
                 <div class="text-center md:text-left">
                     <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.7</span>
+                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.8</span>
                     </h1>
                     <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -193,11 +193,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // =========================================================================
-        // Version 1.7 手動設定區：
-        // 1. extraRow: 最上方的空白 Row
-        // 2. name: 線段名稱
-        // =========================================================================
         const lineData = [
             { id: 14, name: "欣盛",         extraRow: "" },
             { id: 13, name: "華明<br>景盛", extraRow: "" },
@@ -222,47 +217,104 @@
         window.currentClassMode = 'normal'; 
         window.isSoundEnabled = true;
 
-        // 音效模組 (純音樂提示音)
+        // Web Audio Context
+        let audioCtx = null;
+
+        // =========================================================================
+        // Version 1.8 升級版音效模組 (每級基音不同 + 各班和弦獨立)
+        // =========================================================================
+        const notes = {
+            'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77,
+            'C6': 1046.50
+        };
+
+        function playTone(freq, startTime, duration) {
+            if (!audioCtx) return;
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc1.type = 'sine';
+            osc1.frequency.value = freq;
+
+            osc2.type = 'triangle';
+            osc2.frequency.value = freq;
+
+            osc1.connect(gainNode);
+            osc2.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const volume = 0.2;
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+            osc1.start(startTime);
+            osc1.stop(startTime + duration);
+            osc2.start(startTime);
+            osc2.stop(startTime + duration);
+        }
+
+        function playChime(classId) {
+            if (!window.isSoundEnabled) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const grade = parseInt(classId.charAt(0));
+            let cls = classId.substring(1);
+            if (cls.startsWith('S')) cls = 'S';
+
+            const now = audioCtx.currentTime;
+            const noteDuration = 0.8;
+            const interval = 0.15;
+
+            // 1. 根據年級設定專屬基音 Frequency
+            let rootFreq = notes['C4']; // P1
+            if (grade === 2) rootFreq = notes['D4']; // P2
+            if (grade === 3) rootFreq = notes['E4']; // P3
+            if (grade === 4) rootFreq = notes['F4']; // P4
+            if (grade === 5) rootFreq = notes['G4']; // P5
+            if (grade === 6) rootFreq = notes['A4']; // P6
+
+            // 2. 根據班別設定和弦音程
+            let freqs = [];
+            if (cls === 'A') {
+                freqs = [rootFreq, rootFreq * 1.25, rootFreq * 1.5, rootFreq * 2.0];
+            } else if (cls === 'B') {
+                freqs = [rootFreq, rootFreq * 1.125, rootFreq * 1.25, rootFreq * 1.5];
+            } else if (cls === 'C') {
+                freqs = [rootFreq, rootFreq * 1.334, rootFreq * 1.667, rootFreq * 2.0];
+            } else if (cls === 'D') {
+                freqs = [rootFreq, rootFreq * 1.25, rootFreq * 1.5, rootFreq * 1.875];
+            } else if (cls === 'E') {
+                freqs = [rootFreq, rootFreq * 1.5, rootFreq * 2.0, rootFreq * 2.5];
+            } else {
+                freqs = [rootFreq, rootFreq * 1.125, rootFreq * 1.25, rootFreq * 1.414];
+            }
+
+            // 3. 播放 4 音和弦鈴聲
+            playTone(freqs[0], now, noteDuration);
+            playTone(freqs[1], now + interval, noteDuration);
+            playTone(freqs[2], now + interval * 2, noteDuration);
+            playTone(freqs[3], now + interval * 3, noteDuration);
+        }
+
         window.toggleSound = function() {
             window.isSoundEnabled = !window.isSoundEnabled;
             const soundBtn = document.getElementById('btn-sound-toggle');
             if (window.isSoundEnabled) {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
                 soundBtn.className = "px-3 py-2 rounded text-xs md:text-sm font-bold bg-green-600 hover:bg-green-500 text-white flex items-center gap-1 shadow transition-colors";
                 soundBtn.innerHTML = `<span>🔊</span> 音效: 開`;
-                playChimeSound();
+                playChime("1A"); // 開啟時播放測試音效 (1A)
             } else {
                 soundBtn.className = "px-3 py-2 rounded text-xs md:text-sm font-bold bg-red-600 hover:bg-red-500 text-white flex items-center gap-1 shadow transition-colors";
                 soundBtn.innerHTML = `<span>🔇</span> 音效: 關`;
             }
         };
-
-        function playChimeSound() {
-            if (!window.isSoundEnabled) return;
-            try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtx) return;
-                const ctx = new AudioCtx();
-                const now = ctx.currentTime;
-                
-                const freqs = [523.25, 659.25, 783.99]; 
-                freqs.forEach((freq, idx) => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-                    
-                    gain.gain.setValueAtTime(0.2, now + idx * 0.08);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.4);
-                    
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(now + idx * 0.08);
-                    osc.stop(now + idx * 0.08 + 0.4);
-                });
-            } catch (e) {
-                console.warn("Audio Context 無法播放音效:", e);
-            }
-        }
 
         window.changeClassMode = function(mode) {
             window.currentClassMode = mode;
@@ -514,15 +566,13 @@
                     container.appendChild(card);
                 });
 
-                // =========================================================================
-                // Version 1.7 修改：於 6 年級卡片下方加入兩行空白佔位區，解決手機底部遮擋問題
-                // =========================================================================
+                // 手機模式下於 6 年級下方加入兩行空白佔位區
                 const spacer1 = document.createElement('div');
-                spacer1.className = 'h-12 w-full flex-shrink-0'; // 第一行空白
+                spacer1.className = 'h-12 w-full flex-shrink-0';
                 container.appendChild(spacer1);
 
                 const spacer2 = document.createElement('div');
-                spacer2.className = 'h-12 w-full flex-shrink-0'; // 第二行空白
+                spacer2.className = 'h-12 w-full flex-shrink-0';
                 container.appendChild(spacer2);
             }
         }
@@ -616,8 +666,9 @@
 
                 updateButtonUI(classId, isNowActive);
 
+                // 當點亮該班級時，傳入 classId 播放專屬音效
                 if (shouldTriggerAudio && isNowActive && !wasActive) {
-                    playChimeSound();
+                    playChime(classId);
                 }
             });
         }
