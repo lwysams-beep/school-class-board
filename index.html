@@ -1,10 +1,9 @@
-<!-- Version 2.0 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (LED Wall 線路文字大小放大一倍) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全校班級顯示板 v2.0</title>
+    <title>全校班級顯示板 v1.9</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts -->
@@ -135,7 +134,7 @@
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
                 <div class="text-center md:text-left">
                     <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v2.0</span>
+                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.9</span>
                     </h1>
                     <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -170,6 +169,9 @@
                         </button>
                         <button onclick="changeLayout('mobile_mode')" id="btn-mode-mobile" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
                             手機模式
+                        </button>
+                        <button onclick="changeLayout('kiosk_mode')" id="btn-mode-kiosk" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                            Kiosk
                         </button>
                     </div>
                 </div>
@@ -353,6 +355,7 @@
             const tvBtn = document.getElementById('btn-mode-tv');
             const ledBtn = document.getElementById('btn-mode-led');
             const mobileBtn = document.getElementById('btn-mode-mobile');
+            const kioskBtn = document.getElementById('btn-mode-kiosk');
             
             const header = document.getElementById('main-header');
             const container = document.getElementById('board-container');
@@ -364,7 +367,8 @@
             
             tvBtn.className = baseBtnClass;
             ledBtn.className = (mode === 'led_wall') ? activeBtnClass.replace('bg-blue-600', 'bg-teal-600') : baseBtnClass; 
-            mobileBtn.className = baseBtnClass;
+            mobileBtn.className = (mode === 'mobile_mode') ? activeBtnClass.replace('bg-blue-600', 'bg-orange-600') : baseBtnClass;
+            if (kioskBtn) kioskBtn.className = (mode === 'kiosk_mode') ? activeBtnClass.replace('bg-blue-600', 'bg-indigo-600') : baseBtnClass;
 
             wrapper.style.maxWidth = "177.78vh";
             wrapper.style.aspectRatio = "16/9";
@@ -392,8 +396,6 @@
                 container.style.overflowY = "hidden";
 
             } else if (mode === 'led_wall') {
-                ledBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-teal-600');
-                
                 header.style.order = "3"; 
                 header.classList.remove('mb-2');
                 header.classList.add('mt-auto'); 
@@ -407,8 +409,6 @@
                 wrapper.classList.add('justify-between');
 
             } else if (mode === 'mobile_mode') {
-                mobileBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-orange-600');
-                
                 wrapper.style.maxWidth = "100%";
                 wrapper.style.aspectRatio = "unset";
                 wrapper.style.height = "100vh"; 
@@ -420,20 +420,33 @@
                 container.style.order = "1";
                 container.style.height = "100%"; 
                 container.style.overflowY = "auto";
+
+            } else if (mode === 'kiosk_mode') {
+                wrapper.style.maxWidth = "100%"; 
+                wrapper.style.aspectRatio = "unset"; 
+                wrapper.style.height = "100vh"; 
+                
+                header.style.order = "0";
+                header.classList.remove('mt-auto');
+                header.classList.add('mb-2');
+                
+                container.style.order = "1";
+                container.style.flex = "1"; 
+                container.style.height = "100%"; 
+                container.style.overflowY = "hidden"; 
             }
 
             initBoard();
             if (window.lastData) applyDataToUI(window.lastData, false);
         };
 
-        /* Version 2.0: 放大 LED WALL 線段文字大小一倍 */
         function renderLedLines() {
             const container = document.getElementById('led-lines-container');
             if (!container) return;
 
             container.innerHTML = `
                 <div class="flex items-center justify-between mb-2 px-1">
-                    <span class="text-sm md:text-base font-bold text-teal-300 tracking-wider flex items-center gap-1.5">
+                    <span class="text-xs md:text-sm font-bold text-teal-300 tracking-wider flex items-center gap-1.5">
                         <span class="w-2 h-2 rounded-full bg-teal-400"></span>
                         放學線段指示區 (14 - 1 號線)
                     </span>
@@ -447,12 +460,10 @@
                             <div class="p-0.5 text-xs font-bold text-yellow-300 bg-gray-800 border-b border-gray-600 min-h-[28px] flex items-center justify-center leading-tight">
                                 <span>${item.extraRow || ''}</span>
                             </div>
-                            <!-- v2.0: 線號數字大小放大一倍 (原本 text-xs md:text-base -> 改為 text-xl md:text-3xl) -->
-                            <div class="bg-gray-700 text-blue-300 font-black py-0.5 text-xl md:text-3xl border-b border-gray-600">
+                            <div class="bg-gray-700 text-blue-300 font-black py-0.5 text-xs md:text-base border-b border-gray-600">
                                 ${item.id}
                             </div>
-                            <!-- v2.0: 線路名稱文字大小放大一倍 (原本 text-xs md:text-sm -> 改為 text-base md:text-2xl) -->
-                            <div class="p-1 flex items-center justify-center flex-1 text-base md:text-2xl font-bold text-gray-100 leading-tight min-h-[50px] bg-gray-900/50">
+                            <div class="p-1 flex items-center justify-center flex-1 text-xs md:text-sm font-bold text-gray-100 leading-tight min-h-[50px] bg-gray-900/50">
                                 <span>${item.name}</span>
                             </div>
                         </div>
@@ -593,6 +604,25 @@
                 const spacer2 = document.createElement('div');
                 spacer2.className = 'h-12 w-full flex-shrink-0';
                 container.appendChild(spacer2);
+
+            } else if (window.currentLayout === 'kiosk_mode') {
+                container.className = "w-full flex flex-col gap-2 p-2 h-full";
+
+                grades.forEach(grade => {
+                    const currentClasses = getClassesForGrade(grade);
+                    const row = document.createElement('div');
+                    row.className = 'flex-1 w-full flex gap-2';
+                    
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = 'flex-1 flex gap-2 w-full h-full';
+
+                    currentClasses.forEach(cls => {
+                        createButton(grade, cls, btnContainer, 'kiosk_mode');
+                    });
+                    
+                    row.appendChild(btnContainer);
+                    container.appendChild(row);
+                });
             }
         }
 
@@ -613,6 +643,9 @@
                 }
             } else if (mode === 'mobile_mode') {
                 btn.className = `class-btn h-12 md:h-14 rounded-lg font-bold text-lg md:text-xl border border-gray-600 text-gray-400 active:border-blue-400 active:text-blue-300 focus:outline-none select-none bg-gray-900 shadow-sm flex items-center justify-center min-w-0`;
+            } else if (mode === 'kiosk_mode') {
+                btn.className = `class-btn flex-1 h-full rounded-xl font-black border-4 border-gray-700 text-gray-500 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 flex items-center justify-center leading-none`;
+                btn.style.fontSize = "clamp(2rem, 8vw, 6rem)";
             }
             
             btn.innerText = classId;
