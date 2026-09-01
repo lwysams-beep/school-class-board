@@ -1,9 +1,10 @@
+<!-- Version 2.0 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (整合 Kiosk 顯示模式) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全校班級顯示板 v1.9</title>
+    <title>全校班級顯示板 v2.0</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Google Fonts -->
@@ -134,7 +135,7 @@
             <div class="w-full flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
                 <div class="text-center md:text-left">
                     <h1 class="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v1.9</span>
+                        全校班級顯示板 <span class="text-xs text-gray-500 font-normal">v2.0</span>
                     </h1>
                     <p class="mt-1 md:mt-2 text-gray-400 text-xs md:text-sm flex items-center justify-center md:justify-start gap-2">
                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
@@ -161,17 +162,17 @@
 
                     <!-- 顯示佈局切換 -->
                     <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 overflow-x-auto">
-                        <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white whitespace-nowrap">
+                        <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white whitespace-nowrap">
                             TV模式
                         </button>
-                        <button onclick="changeLayout('led_wall')" id="btn-mode-led" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                        <button onclick="changeLayout('led_wall')" id="btn-mode-led" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
                             LED WALL
                         </button>
-                        <button onclick="changeLayout('mobile_mode')" id="btn-mode-mobile" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
-                            手機模式
-                        </button>
-                        <button onclick="changeLayout('kiosk_mode')" id="btn-mode-kiosk" class="px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                        <button onclick="changeLayout('kiosk_mode')" id="btn-mode-kiosk" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
                             Kiosk
+                        </button>
+                        <button onclick="changeLayout('mobile_mode')" id="btn-mode-mobile" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap">
+                            手機模式
                         </button>
                     </div>
                 </div>
@@ -218,7 +219,7 @@
         window.currentLayout = 'tv_mode'; 
         window.currentClassMode = 'normal'; 
         window.isSoundEnabled = true;
-        window.isLedSwapped = false;
+        window.isLedSwapped = false; // 新增：記錄 LED Wall 上下區域是否對調
 
         // Web Audio Context
         let audioCtx = null;
@@ -313,6 +314,7 @@
             }
         };
 
+        // 新增：切換 LED Wall 班別燈與線段區的位置對調
         window.toggleLedSwap = function() {
             window.isLedSwapped = !window.isLedSwapped;
             updateLedWallOrders();
@@ -362,13 +364,13 @@
             const linesContainer = document.getElementById('led-lines-container');
             const wrapper = document.getElementById('screen-wrapper');
             
-            const baseBtnClass = "px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
-            const activeBtnClass = "px-3 md:px-4 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg whitespace-nowrap";
+            const baseBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
+            const activeBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg whitespace-nowrap";
             
             tvBtn.className = baseBtnClass;
             ledBtn.className = (mode === 'led_wall') ? activeBtnClass.replace('bg-blue-600', 'bg-teal-600') : baseBtnClass; 
-            mobileBtn.className = (mode === 'mobile_mode') ? activeBtnClass.replace('bg-blue-600', 'bg-orange-600') : baseBtnClass;
-            if (kioskBtn) kioskBtn.className = (mode === 'kiosk_mode') ? activeBtnClass.replace('bg-blue-600', 'bg-indigo-600') : baseBtnClass;
+            mobileBtn.className = baseBtnClass;
+            kioskBtn.className = baseBtnClass;
 
             wrapper.style.maxWidth = "177.78vh";
             wrapper.style.aspectRatio = "16/9";
@@ -396,6 +398,8 @@
                 container.style.overflowY = "hidden";
 
             } else if (mode === 'led_wall') {
+                ledBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-teal-600');
+                
                 header.style.order = "3"; 
                 header.classList.remove('mb-2');
                 header.classList.add('mt-auto'); 
@@ -405,10 +409,12 @@
                     renderLedLines(); 
                 }
 
-                updateLedWallOrders();
+                updateLedWallOrders(); // 更新上下位置順序
                 wrapper.classList.add('justify-between');
 
             } else if (mode === 'mobile_mode') {
+                mobileBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-orange-600');
+                
                 wrapper.style.maxWidth = "100%";
                 wrapper.style.aspectRatio = "unset";
                 wrapper.style.height = "100vh"; 
@@ -420,8 +426,9 @@
                 container.style.order = "1";
                 container.style.height = "100%"; 
                 container.style.overflowY = "auto";
-
             } else if (mode === 'kiosk_mode') {
+                kioskBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-indigo-600');
+
                 wrapper.style.maxWidth = "100%"; 
                 wrapper.style.aspectRatio = "unset"; 
                 wrapper.style.height = "100vh"; 
@@ -604,7 +611,6 @@
                 const spacer2 = document.createElement('div');
                 spacer2.className = 'h-12 w-full flex-shrink-0';
                 container.appendChild(spacer2);
-
             } else if (window.currentLayout === 'kiosk_mode') {
                 container.className = "w-full flex flex-col gap-2 p-2 h-full";
 
