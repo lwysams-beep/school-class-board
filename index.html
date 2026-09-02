@@ -1,13 +1,10 @@
-<!-- Version 2.1 - 香海正覺蓮社佛教正覺蓮社學校 - 全校班級顯示板 (優化 LED Wall 頂部空間) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>全校班級顯示板 v2.1</title>
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
@@ -43,7 +40,7 @@
            年級專屬顏色光暈設定 (彩虹色系)
            ========================================= */
         [class*="glow-"] {
-            transform: scale(1.02); 
+            transform: scale(1.02);
             font-weight: 900 !important;
             z-index: 10;
             border-color: transparent !important;
@@ -51,42 +48,42 @@
 
         /* 1年級：粉紅色 */
         .glow-1 {
-            box-shadow: 0 0 20px #ec4899, 0 0 40px #be185d; 
+            box-shadow: 0 0 20px #ec4899, 0 0 40px #be185d;
             background-color: #ec4899; 
             color: #ffffff !important; 
         }
 
         /* 2年級：橙色 */
         .glow-2 {
-            box-shadow: 0 0 20px #f97316, 0 0 40px #c2410c; 
+            box-shadow: 0 0 20px #f97316, 0 0 40px #c2410c;
             background-color: #f97316; 
             color: #ffffff !important; 
         }
 
         /* 3年級：黃色 */
         .glow-3 {
-            box-shadow: 0 0 20px #eab308, 0 0 40px #a16207; 
+            box-shadow: 0 0 20px #eab308, 0 0 40px #a16207;
             background-color: #eab308; 
             color: #000000 !important; 
         }
 
         /* 4年級：綠色 */
         .glow-4 {
-            box-shadow: 0 0 20px #22c55e, 0 0 40px #15803d; 
+            box-shadow: 0 0 20px #22c55e, 0 0 40px #15803d;
             background-color: #22c55e; 
             color: #000000 !important; 
         }
 
         /* 5年級：藍色 */
         .glow-5 {
-            box-shadow: 0 0 20px #3b82f6, 0 0 40px #1d4ed8; 
+            box-shadow: 0 0 20px #3b82f6, 0 0 40px #1d4ed8;
             background-color: #3b82f6; 
             color: #ffffff !important; 
         }
 
         /* 6年級：紫色 */
         .glow-6 {
-            box-shadow: 0 0 20px #a855f7, 0 0 40px #7e22ce; 
+            box-shadow: 0 0 20px #a855f7, 0 0 40px #7e22ce;
             background-color: #a855f7; 
             color: #ffffff !important; 
         }
@@ -94,6 +91,15 @@
         .class-btn {
             transition: all 0.15s ease-out;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 新增：剛剛點亮班級的 10 秒閃爍提醒效果 */
+        @keyframes flash-glow {
+            0%, 100% { opacity: 1; filter: brightness(100%); transform: scale(1.02); }
+            50% { opacity: 0.4; filter: brightness(180%); transform: scale(0.96); }
+        }
+        .flash-10s {
+            animation: flash-glow 0.6s infinite ease-in-out;
         }
 
         #loading-overlay {
@@ -111,14 +117,14 @@
             width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-            background: #2d3748; 
+            background: #2d3748;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #4a5568; 
+            background: #4a5568;
             border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #718096; 
+            background: #718096;
         }
             
         /* LED WALL 模式下移除頂部 padding */
@@ -150,14 +156,11 @@
                     </p>
                 </div>
                 
-                <!-- 控制按鈕區域 -->
                 <div class="flex flex-wrap gap-2 items-center justify-center md:justify-end w-full md:w-auto">
-                    <!-- 音效開關按鈕 -->
                     <button onclick="toggleSound()" id="btn-sound-toggle" class="px-3 py-2 rounded text-xs md:text-sm font-bold bg-green-600 hover:bg-green-500 text-white flex items-center gap-1 shadow transition-colors">
                         <span id="sound-icon">🔊</span> 音效: 開
                     </button>
 
-                    <!-- 班級模式切換 -->
                     <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
                         <button onclick="changeClassMode('normal')" id="btn-class-normal" class="px-3 py-1 rounded text-xs md:text-sm font-bold transition-colors bg-purple-600 text-white">
                             平日 (28)
@@ -167,7 +170,6 @@
                         </button>
                     </div>
 
-                    <!-- 顯示佈局切換 -->
                     <div class="flex bg-gray-800 rounded-lg p-1 border border-gray-700 overflow-x-auto">
                         <button onclick="changeLayout('tv_mode')" id="btn-mode-tv" class="px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white whitespace-nowrap">
                             TV模式
@@ -186,15 +188,11 @@
             </div>
         </header>
 
-        <!-- 區域一：班別表格區 -->
         <main id="board-container" class="w-full transition-all duration-500 z-10 custom-scrollbar">
-            <!-- JS 動態生成班級按鈕 -->
-        </main>
+            </main>
 
-        <!-- 區域二：排隊/線段表格區 -->
         <div id="led-lines-container" class="w-full hidden z-10 border-t-2 border-teal-500/40 mb-2">
-            <!-- JS 動態生成線段 -->
-        </div>
+            </div>
 
     </div>
     
@@ -222,15 +220,18 @@
 
         const grades = [1, 2, 3, 4, 5, 6];
         const numToChinese = { 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六' };
-        
+
         window.currentLayout = 'tv_mode'; 
         window.currentClassMode = 'normal'; 
         window.isSoundEnabled = true;
-        window.isLedSwapped = false; // 新增：記錄 LED Wall 上下區域是否對調
+        window.isLedSwapped = false;
+
+        // 記錄班級被點亮的時間與定時器
+        const flashTimestamps = {};
+        const flashTimers = {};
 
         // Web Audio Context
         let audioCtx = null;
-
         const notes = {
             'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
             'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77,
@@ -245,7 +246,6 @@
 
             osc1.type = 'sine';
             osc1.frequency.value = freq;
-
             osc2.type = 'triangle';
             osc2.frequency.value = freq;
 
@@ -321,7 +321,6 @@
             }
         };
 
-        // 新增：切換 LED Wall 班別燈與線段區的位置對調
         window.toggleLedSwap = function() {
             window.isLedSwapped = !window.isLedSwapped;
             updateLedWallOrders();
@@ -360,7 +359,6 @@
 
         window.changeLayout = function(mode) {
             window.currentLayout = mode;
-            
             const tvBtn = document.getElementById('btn-mode-tv');
             const ledBtn = document.getElementById('btn-mode-led');
             const mobileBtn = document.getElementById('btn-mode-mobile');
@@ -370,7 +368,6 @@
             const container = document.getElementById('board-container');
             const linesContainer = document.getElementById('led-lines-container');
             const wrapper = document.getElementById('screen-wrapper');
-            
             const baseBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors text-gray-400 hover:text-white whitespace-nowrap";
             const activeBtnClass = "px-3 md:px-4 py-2 rounded text-xs md:text-sm font-bold transition-colors bg-blue-600 text-white shadow-lg whitespace-nowrap";
             
@@ -405,15 +402,12 @@
                 container.style.flex = "1"; 
                 container.style.height = "100%"; 
                 container.style.overflowY = "hidden";
-
             } else if (mode === 'led_wall') {
                                 
                 ledBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-teal-600');
                 wrapper.classList.add('led-wall-active');
                 
-                // 為了保持兩個區域間的距離，把間距加到班別區
                 container.classList.add('mt-6', 'pt-4');
-                
                 header.style.order = "3"; 
                 header.classList.remove('mb-2');
                 header.classList.add('mt-auto'); 
@@ -423,9 +417,8 @@
                     renderLedLines(); 
                 }
 
-                updateLedWallOrders(); // 更新上下位置順序
+                updateLedWallOrders();
                 wrapper.classList.add('justify-between');
-
             } else if (mode === 'mobile_mode') {
                 mobileBtn.className = activeBtnClass.replace('bg-blue-600', 'bg-orange-600');
                 wrapper.classList.remove('led-wall-active');
@@ -534,7 +527,7 @@
         const db = getFirestore(app);
 
         const COLLECTION_NAME = 'class_board_data';
-        const DOC_ID = 'main_status'; 
+        const DOC_ID = 'main_status';
         const statusDocRef = doc(db, COLLECTION_NAME, DOC_ID);
 
         const container = document.getElementById('board-container');
@@ -545,11 +538,9 @@
         let isFirstLoad = true;
 
         function initBoard() {
-            container.innerHTML = ''; 
-
+            container.innerHTML = '';
             if (window.currentLayout === 'tv_mode') {
                 container.className = "w-full flex flex-col gap-2 mx-auto pr-2 h-full pb-2";
-                
                 grades.forEach(grade => {
                     const currentClasses = getClassesForGrade(grade);
                     const row = document.createElement('div');
@@ -567,7 +558,6 @@
                     const btnContainer = document.createElement('div');
                     const colCount = currentClasses.length > 6 ? 8 : 6;
                     btnContainer.className = `grid grid-cols-4 md:grid-cols-${colCount} gap-2 w-full h-full`;
-
                     currentClasses.forEach(cls => {
                         createButton(grade, cls, btnContainer, 'tv_mode');
                     });
@@ -577,7 +567,6 @@
 
             } else if (window.currentLayout === 'led_wall') {
                 container.className = "w-full grid grid-cols-6 gap-1 px-1 h-[25%] items-start";
-
                 grades.forEach(grade => {
                     const currentClasses = getClassesForGrade(grade);
                     const col = document.createElement('div');
@@ -592,10 +581,8 @@
                     col.appendChild(btnContainer);
                     container.appendChild(col);
                 });
-
             } else if (window.currentLayout === 'mobile_mode') {
                 container.className = "w-full flex flex-col gap-4 pb-32 px-2";
-
                 grades.forEach(grade => {
                     const currentClasses = getClassesForGrade(grade);
                     const card = document.createElement('div');
@@ -614,7 +601,6 @@
                         gridColsClass = 'grid-cols-3';
                     }
                     btnContainer.className = `grid ${gridColsClass} gap-2`;
-
                     currentClasses.forEach(cls => {
                         createButton(grade, cls, btnContainer, 'mobile_mode');
                     });
@@ -631,7 +617,6 @@
                 container.appendChild(spacer2);
             } else if (window.currentLayout === 'kiosk_mode') {
                 container.className = "w-full flex flex-col gap-2 p-2 h-full";
-
                 grades.forEach(grade => {
                     const currentClasses = getClassesForGrade(grade);
                     const row = document.createElement('div');
@@ -661,9 +646,9 @@
             } else if (mode === 'led_wall') {
                 btn.className = `class-btn flex-1 w-full rounded font-black border-2 border-gray-600 text-gray-500 hover:border-blue-400 hover:text-blue-300 focus:outline-none select-none bg-gray-900 leading-none tracking-wider flex items-center justify-center`;
                 if (classCount >= 7) {
-                    btn.style.fontSize = "clamp(1rem, 2.5vh, 2rem)"; 
+                    btn.style.fontSize = "clamp(1rem, 2.5vh, 2rem)";
                 } else {
-                    btn.style.fontSize = "clamp(1.5rem, 4vh, 3rem)"; 
+                    btn.style.fontSize = "clamp(1.5rem, 4vh, 3rem)";
                 }
             } else if (mode === 'mobile_mode') {
                 btn.className = `class-btn h-12 md:h-14 rounded-lg font-bold text-lg md:text-xl border border-gray-600 text-gray-400 active:border-blue-400 active:text-blue-300 focus:outline-none select-none bg-gray-900 shadow-sm flex items-center justify-center min-w-0`;
@@ -686,8 +671,7 @@
             for(let i=1; i<=6; i++) {
                 if(btn.classList.contains(`glow-${i}`)) hasGlow = true;
             }
-            const newState = !hasGlow; 
-
+            const newState = !hasGlow;
             try {
                 await setDoc(statusDocRef, { [classId]: newState }, { merge: true });
             } catch (error) {
@@ -711,6 +695,7 @@
                 const data = docSnapshot.data() || {};
                 
                 currentDbDate = data.lastResetDate;
+            
                 const today = getHKDateString();
                 if (currentDbDate !== today) {
                     performDailyReset(today);
@@ -730,7 +715,38 @@
             setInterval(() => {
                 const today = getHKDateString();
                 if (currentDbDate && currentDbDate !== today) performDailyReset(today);
-            }, 60000); 
+            }, 60000);
+        }
+
+        // 處理 10 秒閃爍倒數邏輯
+        function triggerFlashEffect(classId) {
+            const btn = document.getElementById(`btn-${classId}`);
+            if (!btn) return;
+
+            const startTime = flashTimestamps[classId];
+            if (!startTime) {
+                btn.classList.remove('flash-10s');
+                return;
+            }
+
+            const elapsed = Date.now() - startTime;
+            const remaining = 10000 - elapsed;
+
+            if (remaining > 0) {
+                btn.classList.add('flash-10s');
+                if (flashTimers[classId]) clearTimeout(flashTimers[classId]);
+
+                flashTimers[classId] = setTimeout(() => {
+                    const currentBtn = document.getElementById(`btn-${classId}`);
+                    if (currentBtn) currentBtn.classList.remove('flash-10s');
+                    delete flashTimestamps[classId];
+                    delete flashTimers[classId];
+                }, remaining);
+            } else {
+                btn.classList.remove('flash-10s');
+                delete flashTimestamps[classId];
+                delete flashTimers[classId];
+            }
         }
 
         function applyDataToUI(newData, shouldTriggerAudio = true) {
@@ -742,8 +758,22 @@
 
                 updateButtonUI(classId, isNowActive);
 
-                if (shouldTriggerAudio && isNowActive && !wasActive) {
-                    playChime(classId);
+                if (isNowActive) {
+                    if (!wasActive) {
+                        // 班級剛被點亮：記錄點亮時間戳，播報音效
+                        flashTimestamps[classId] = Date.now();
+                        if (shouldTriggerAudio) {
+                            playChime(classId);
+                        }
+                    }
+                    // 執行/維持 10 秒閃爍
+                    triggerFlashEffect(classId);
+                } else {
+                    // 班級取消點亮：清除時間戳與閃爍效果
+                    if (flashTimers[classId]) clearTimeout(flashTimers[classId]);
+                    delete flashTimestamps[classId];
+                    delete flashTimers[classId];
+                    btn.classList.remove('flash-10s');
                 }
             });
         }
